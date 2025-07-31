@@ -1,0 +1,159 @@
+---
+// Fetch the latest Spotify activity
+import fetch from 'node-fetch';
+
+interface SpotifyTrack {
+  name: string;
+  artists: Array<{ name: string }>;
+  album: {
+    name: string;
+    images: Array<{ url: string }>;
+  };
+  external_urls: {
+    spotify: string;
+  };
+}
+
+interface SpotifyTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+interface SpotifyRecentlyPlayed {
+  items: Array<{
+    track: SpotifyTrack;
+    played_at: string;
+  }>;
+}
+
+let latestSong: SpotifyTrack | null = null;
+let error: string | null = null;
+
+try {
+  // You'll need to set these environment variables
+  const clientId = import.meta.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = import.meta.env.SPOTIFY_CLIENT_SECRET;
+  const refreshToken = import.meta.env.SPOTIFY_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    error = "Spotify credentials not configured";
+  } else {
+    // Get access token using refresh token
+    const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken
+      })
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to get access token');
+    }
+
+    const tokenData = await tokenResponse.json() as SpotifyTokenResponse;
+    const accessToken = tokenData.access_token;
+
+    // Fetch recently played tracks
+    const recentlyPlayedResponse = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=1', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!recentlyPlayedResponse.ok) {
+      throw new Error('Failed to fetch recently played tracks');
+    }
+
+    const recentlyPlayedData = await recentlyPlayedResponse.json() as SpotifyRecentlyPlayed;
+    
+    if (recentlyPlayedData.items && recentlyPlayedData.items.length > 0) {
+      latestSong = recentlyPlayedData.items[0].track;
+    }
+  }
+} catch (err) {
+  error = err instanceof Error ? err.message : 'Unknown error occurred';
+  console.error('Spotify API error:', err);
+}
+---
+
+{latestSong && !error ? (
+  <section class="latest-spotify">
+    <h2>Latest Listen</h2>
+    <div class="album-card">
+      {latestSong.album.images && latestSong.album.images.length > 0 && (
+        <div class="album-poster">
+          <img src={latestSong.album.images[0].url} alt={`Cover art for ${latestSong.album.name}`} />
+        </div>
+      )}
+      <div class="album-details">
+        <h3 class="album-title">
+          <a href={latestSong.external_urls.spotify} target="_blank" rel="noopener noreferrer">
+            {latestSong.artists.map(artist => artist.name).join(', ')} — {latestSong.album.name}: {latestSong.name}
+          </a>
+        </h3>
+      </div>
+    </div>
+  </section>
+) : error ? (
+  <section class="latest-spotify error">
+    <p>Unable to load latest Spotify activity. Please check your configuration.</p>
+  </section>
+) : null}
+
+<style>
+  .latest-spotify {
+    margin: 2rem 0;
+  }
+  
+  .album-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .album-poster img {
+    width: 80px;
+    height: 80px;
+    border: 1px solid color-mix(
+      in lab,
+      var(--color-foreground),
+      var(--color-background) 80%
+    );
+    border-radius: 4px;
+    object-fit: cover;
+    box-shadow: 0 2px 0 color-mix(
+      in lab,
+      var(--color-foreground),
+      var(--color-background) 90%
+    );
+  }
+  
+  .album-details {
+    flex: 1;
+  }
+  
+  .album-title {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+  
+  .album-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+  
+  .album-title a:hover {
+    text-decoration: underline;
+  }
+  
+  .error {
+    color: #ef4444;
+  }
+</style> 

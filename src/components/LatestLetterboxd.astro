@@ -1,0 +1,181 @@
+---
+// Fetch the latest Letterboxd activity from RSS feed
+
+const rssUrl = 'https://letterboxd.com/jsca/rss';
+
+let latestFilm: {
+  title: string;
+  year: string;
+  rating: string;
+  reviewText: string;
+  reviewUrl: string;
+  imageUrl: string;
+} | null = null;
+let error: string | null = null;
+
+try {
+  const response = await fetch(rssUrl);
+  if (response.ok) {
+    const xmlText = await response.text();
+    
+    // Parse the RSS XML to extract the latest film
+    // Use a simple regex-based parser since DOMParser isn't available server-side
+    const itemMatch = xmlText.match(/<item>([\s\S]*?)<\/item>/);
+    
+    if (itemMatch) {
+      const itemContent = itemMatch[1];
+      
+      // Extract title
+      const titleMatch = itemContent.match(/<title>(.*?)<\/title>/);
+      const title = titleMatch ? titleMatch[1] : '';
+      
+      // Extract link
+      const linkMatch = itemContent.match(/<link>(.*?)<\/link>/);
+      const link = linkMatch ? linkMatch[1] : '';
+      
+      // Extract description
+      const descMatch = itemContent.match(/<description>(.*?)<\/description>/);
+      const description = descMatch ? descMatch[1] : '';
+      
+      // Extract rating from the title (format: "Film Title ★★★★☆")
+      const ratingMatch = title.match(/★+/);
+      const rating = ratingMatch ? ratingMatch[0] : '';
+      
+      // Extract film title (all characters before ", 19XX" or ", 20XX")
+      const filmTitle = title.replace(/,\s*(19|20)\d{2}.*$/, '').trim();
+      
+      // Extract year (19XX or 20XX)
+      const yearMatch = title.match(/,\s*(19|20)\d{2}/);
+      const year = yearMatch ? yearMatch[1] + yearMatch[0].slice(-2) : '';
+      
+      // Extract review text from description
+      const reviewText = description.replace(/<[^>]*>/g, '').replace(/]]>/g, '').trim();
+      
+      // Try to extract image URL from description
+      const imgMatch = description.match(/<img[^>]+src="([^"]+)"/);
+      const imageUrl = imgMatch ? imgMatch[1] : '';
+      
+      latestFilm = {
+        title: filmTitle,
+        year,
+        rating,
+        reviewText,
+        reviewUrl: link,
+        imageUrl
+      };
+    }
+  } else {
+    error = `Failed to fetch RSS feed: ${response.status}`;
+  }
+} catch (err) {
+  const errorMessage = err instanceof Error ? err.message : String(err);
+  error = `Error fetching Letterboxd data: ${errorMessage}`;
+}
+---
+
+{latestFilm && !error ? (
+  <section class="latest-letterboxd">
+    <h2>Latest Watch</h2>
+    <div class="film">
+      {latestFilm.imageUrl && (
+        <div class="film-poster">
+          <img src={latestFilm.imageUrl} alt={`Poster for ${latestFilm.title}`} />
+        </div>
+      )}
+      <div class="film-details">
+        <h3 class="film-title">
+          {latestFilm.title} 
+          ({latestFilm.year})
+          {latestFilm.rating && (
+            <span class="film-rating">
+              {latestFilm.rating}
+            </span>
+          )}
+        </h3>
+        {latestFilm.reviewText && (
+          <p class="film-review">
+            {latestFilm.reviewText}
+          </p>
+        )}
+        
+        <a href={latestFilm.reviewUrl} target="_blank" rel="noopener noreferrer">
+          Read review on Letterboxd &rarr;
+        </a>
+      </div>
+    </div>
+  </section>
+) : error ? (
+  <section class="latest-letterboxd error">
+    <p>Unable to load latest Letterboxd activity. Please check your username configuration.</p>
+  </section>
+) : null}
+
+<style>
+  .film {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .film-poster {
+    flex-shrink: 0;
+  }
+
+  .film-poster img {
+    width: 80px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid color-mix(
+      in lab,
+      var(--color-foreground),
+      var(--color-background) 80%
+    );
+    box-shadow: 0 2px 0 color-mix(
+      in lab,
+      var(--color-foreground),
+      var(--color-background) 90%
+    );
+  }
+
+  .film-details {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .film-title {
+    font-family: var(--font-family-sans);
+    font-weight: 600;
+  }
+
+  .film-review {
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .film a {
+    font-family: var(--font-family-sans);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .error {
+    color: var(--color-text-secondary);
+    font-style: italic;
+  }
+
+  @media (max-width: 640px) {
+    .film {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .film-poster img {
+      width: 60px;
+      height: 90px;
+    }
+  }
+</style> 
