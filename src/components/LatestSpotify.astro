@@ -1,6 +1,7 @@
 ---
 // Fetch the latest Spotify activity
 import fetch from 'node-fetch';
+import Tooltip from './Tooltip.astro';
 
 interface SpotifyTrack {
   name: string;
@@ -30,12 +31,12 @@ interface SpotifyRecentlyPlayed {
 let latestSong: SpotifyTrack | null = null;
 let error: string | null = null;
 
-try {
-  // You'll need to set these environment variables
-  const clientId = import.meta.env.SPOTIFY_CLIENT_ID;
-  const clientSecret = import.meta.env.SPOTIFY_CLIENT_SECRET;
-  const refreshToken = import.meta.env.SPOTIFY_REFRESH_TOKEN;
+// You'll need to set these environment variables
+const clientId = import.meta.env.SPOTIFY_CLIENT_ID;
+const clientSecret = import.meta.env.SPOTIFY_CLIENT_SECRET;
+const refreshToken = import.meta.env.SPOTIFY_REFRESH_TOKEN;
 
+try {
   if (!clientId || !clientSecret || !refreshToken) {
     error = "Spotify credentials not configured";
   } else {
@@ -79,81 +80,106 @@ try {
 } catch (err) {
   error = err instanceof Error ? err.message : 'Unknown error occurred';
   console.error('Spotify API error:', err);
+  
+  // Add more detailed error logging
+  if (err instanceof Error) {
+    console.error('Error details:', {
+      message: err.message,
+      stack: err.stack,
+      clientId: clientId ? 'set' : 'missing',
+      clientSecret: clientSecret ? 'set' : 'missing', 
+      refreshToken: refreshToken ? 'set' : 'missing'
+    });
+  }
 }
 ---
 
 {latestSong && !error ? (
-  <section class="latest-spotify">
-    <h2>Latest Listen</h2>
-    <div class="album-card">
-      {latestSong.album.images && latestSong.album.images.length > 0 && (
-        <div class="album-poster">
-          <img src={latestSong.album.images[0].url} alt={`Cover art for ${latestSong.album.name}`} />
+  <>
+    {latestSong.album.images && latestSong.album.images.length > 0 && (
+      <Tooltip 
+        content={`${latestSong.name} by ${latestSong.artists.map(artist => artist.name).join(', ')}`}
+        ariaLabel={`${latestSong.name} by ${latestSong.artists.map(artist => artist.name).join(', ')}`}
+        class="album-poster-container draggable"
+      >
+        <img class="album-poster" src={latestSong.album.images[0].url} alt="" />
+        <div slot="tooltip-content">
+          <div class="song-title">{latestSong.name}</div>
+          <div class="artist-name">{latestSong.artists.map(artist => artist.name).join(', ')}</div>
         </div>
-      )}
-      <div class="album-details">
-        <h3 class="album-title">
-          <a href={latestSong.external_urls.spotify} target="_blank" rel="noopener noreferrer">
-            {latestSong.artists.map(artist => artist.name).join(', ')} — {latestSong.album.name}: {latestSong.name}
-          </a>
-        </h3>
-      </div>
-    </div>
-  </section>
+      </Tooltip>
+    )}
+  </>
 ) : error ? (
-  <section class="latest-spotify error">
-    <p>Unable to load latest Spotify activity. Please check your configuration.</p>
-  </section>
+  <></>
 ) : null}
 
 <style>
-  .latest-spotify {
-    margin: 2rem 0;
+  .album-poster-container {
+    display: block;
   }
-  
-  .album-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  
-  .album-poster img {
-    width: 80px;
-    height: 80px;
+  img.album-poster {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 120px;
     border: 1px solid color-mix(
       in lab,
       var(--color-foreground),
       var(--color-background) 80%
     );
-    border-radius: 4px;
     object-fit: cover;
-    box-shadow: 0 2px 0 color-mix(
+    box-shadow: 0 2px 0 rgb(0, 0, 0, 0.2);
+  }
+
+  .song-title {
+    font-weight: 600;
+    color: var(--color-foreground);
+    margin-bottom: 2px;
+  }
+
+  .artist-name {
+    color: color-mix(
       in lab,
       var(--color-foreground),
-      var(--color-background) 90%
+      var(--color-background) 40%
     );
+    font-size: 13px;
   }
-  
-  .album-details {
-    flex: 1;
+
+  /* Add focus styles for better accessibility */
+  .tooltip-container:focus-visible {
+    border-radius: 120px;
   }
-  
-  .album-title {
-    margin: 0;
-    font-size: 0.9rem;
-    line-height: 1.4;
-  }
-  
-  .album-title a {
-    color: inherit;
-    text-decoration: none;
-  }
-  
-  .album-title a:hover {
-    text-decoration: underline;
-  }
-  
-  .error {
-    color: #ef4444;
-  }
-</style> 
+</style>
+
+<script>
+  // Add keyboard support for tooltip
+  document.addEventListener('DOMContentLoaded', () => {
+    const albumPosters = document.querySelectorAll('.album-poster');
+    
+    albumPosters.forEach(poster => {
+      const tooltip = poster.querySelector('.tooltip');
+      
+      if (tooltip) {
+        // Show tooltip on focus for keyboard users
+        poster.addEventListener('focus', () => {
+          tooltip.setAttribute('aria-hidden', 'false');
+        });
+        
+        // Hide tooltip on blur
+        poster.addEventListener('blur', () => {
+          tooltip.setAttribute('aria-hidden', 'true');
+        });
+        
+        // Handle escape key to hide tooltip
+        poster.addEventListener('keydown', (e) => {
+          const keyboardEvent = e as KeyboardEvent;
+          if (keyboardEvent.key === 'Escape') {
+            (poster as HTMLElement).blur();
+          }
+        });
+      }
+    });
+  });
+</script> 

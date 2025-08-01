@@ -1,5 +1,6 @@
 ---
 // Fetch the latest Letterboxd activity from RSS feed
+import Tooltip from './Tooltip.astro';
 
 const rssUrl = 'https://letterboxd.com/jsca/rss';
 
@@ -74,36 +75,43 @@ try {
 ---
 
 {latestFilm && !error ? (
-  <section class="latest-letterboxd">
-    <h2>Latest Watch</h2>
-    <div class="film">
-      {latestFilm.imageUrl && (
-        <div class="film-poster">
-          <img src={latestFilm.imageUrl} alt={`Poster for ${latestFilm.title}`} />
+  <>
+    {latestFilm.imageUrl && (
+      <Tooltip 
+        content={`${latestFilm.title} (${latestFilm.year}) - ${latestFilm.rating}`}
+        ariaLabel={`Poster for ${latestFilm.title} (${latestFilm.year})`}
+        class="film-poster-container  draggable"
+      >
+        <figure class="film-poster">
+          <img src={latestFilm.imageUrl} alt="" />
+        </figure>
+        <div slot="tooltip-content">
+          <div class="film-title-tooltip">
+            {latestFilm.title} 
+            (<span>{latestFilm.year}</span>)
+          </div>
         </div>
-      )}
-      <div class="film-details">
-        <h3 class="film-title">
-          {latestFilm.title} 
-          ({latestFilm.year})
-          {latestFilm.rating && (
-            <span class="film-rating">
-              {latestFilm.rating}
-            </span>
-          )}
-        </h3>
-        {latestFilm.reviewText && (
-          <p class="film-review">
-            {latestFilm.reviewText}
-          </p>
-        )}
-        
-        <a href={latestFilm.reviewUrl} target="_blank" rel="noopener noreferrer">
-          Read review on Letterboxd &rarr;
-        </a>
+      </Tooltip>
+    )}
+    
+    <div class="film-ticket-container draggable relative">
+      <div class="film-ticket-shadow" />
+      <div class="film-ticket flex flex-col justify-between gap-3 ">
+        <div class="flex flex-col gap-1">
+          <span class="film-cinema">SKULL CINEMA 1</span>
+          <h2 class="film-title">{latestFilm.title}</h2>
+        </div>
+        <div class="flex justify-between gap-2">
+          <div class="flex flex-col gap-1">
+            <span class="film-year">{latestFilm.year}</span>
+          </div>
+          <div class="flex flex-col justify-end items-end gap-1">
+            <span class="film-date">{latestFilm.watchedDate}</span>
+          </div>
+        </div>
       </div>
     </div>
-  </section>
+  </>
 ) : error ? (
   <section class="latest-letterboxd error">
     <p>Unable to load latest Letterboxd activity. Please check your username configuration.</p>

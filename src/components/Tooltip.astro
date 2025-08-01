@@ -1,0 +1,116 @@
+---
+export interface Props {
+  content: string;
+  children: unknown;
+  class?: string;
+  ariaLabel?: string;
+}
+
+const { content, children, class: className = "", ariaLabel } = Astro.props;
+---
+
+<div 
+  class={`tooltip-container ${className}`}
+  role="img" 
+  aria-label={ariaLabel || content}
+  tabindex="0"
+  data-tooltip={content}
+>
+  <slot />
+  <div class="tooltip" role="tooltip" aria-hidden="true">
+    <div class="tooltip-content">
+      <slot name="tooltip-content">
+        {content}
+      </slot>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tooltip-container {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background-color: var(--color-background);
+    border: 1px solid color-mix(
+      in lab,
+      var(--color-foreground),
+      var(--color-background) 80%
+    );
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: nowrap;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    pointer-events: none;
+    font-weight: 600;
+  }
+
+  .tooltip-content {
+    text-align: center;
+  }
+
+  /* Show tooltip on hover and focus */
+  .tooltip-container:hover .tooltip,
+  .tooltip-container:focus .tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Ensure tooltip is visible when focused with keyboard */
+  .tooltip-container:focus-visible .tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Add focus styles for better accessibility */
+  .tooltip-container:focus-visible {
+    outline: 2px solid var(--color-foreground);
+    outline-offset: 2px;
+  }
+</style>
+
+<script>
+  // Add keyboard support for tooltip
+  document.addEventListener('DOMContentLoaded', () => {
+    const tooltipContainers = document.querySelectorAll('.tooltip-container');
+    
+    tooltipContainers.forEach(container => {
+      const tooltip = container.querySelector('.tooltip');
+      
+      if (tooltip) {
+        // Show tooltip on focus for keyboard users
+        container.addEventListener('focus', () => {
+          tooltip.setAttribute('aria-hidden', 'false');
+        });
+        
+        // Hide tooltip on blur
+        container.addEventListener('blur', () => {
+          tooltip.setAttribute('aria-hidden', 'true');
+        });
+        
+        // Handle escape key to hide tooltip
+        container.addEventListener('keydown', (e) => {
+          const keyboardEvent = e as KeyboardEvent;
+          if (keyboardEvent.key === 'Escape') {
+            (container as HTMLElement).blur();
+          }
+        });
+      }
+    });
+  });
+</script> 
