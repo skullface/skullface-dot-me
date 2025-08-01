@@ -39,7 +39,7 @@ const { content, children, class: className = "", ariaLabel } = Astro.props;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    min-width: 220px;
+    min-width: 240px;
     margin-bottom: 8px;
     padding: 8px 12px;
     background-color: var(--color-foreground);
@@ -58,21 +58,18 @@ const { content, children, class: className = "", ariaLabel } = Astro.props;
   .tooltip-content {
     text-align: center;
   }
-
-  /* Show tooltip on hover and focus */
+  
   .tooltip-container:hover .tooltip,
   .tooltip-container:focus .tooltip {
     opacity: 1;
     visibility: visible;
   }
 
-  /* Ensure tooltip is visible when focused with keyboard */
   .tooltip-container:focus-visible .tooltip {
     opacity: 1;
     visibility: visible;
   }
 
-  /* Add focus styles for better accessibility */
   .tooltip-container:focus-visible {
     outline: 2px solid var(--color-foreground);
     outline-offset: 2px;

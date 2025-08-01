@@ -102,7 +102,6 @@ try {
         ariaLabel={`${latestSong.name} by ${latestSong.artists.map(artist => artist.name).join(', ')}`}
         class="album draggable"
       >
-        
         <div class="cd-container">
           <div class="cd-face cd-front">
             <img src={latestSong.album.images[0].url} alt="" class="cd-image" />
@@ -112,7 +111,9 @@ try {
           </div>
         </div>
         <span slot="tooltip-content">
-          <span class="song-title">{latestSong.name}</span> —
+          <span class="tooltip-meta">Last listened to </span>
+          <span class="song-title">{latestSong.name}</span> 
+          <span style="opacity: 0.5;"> — </span>
           <span class="artist-name">{latestSong.artists.map(artist => artist.name).join(', ')}</span>
         </div>
       </Tooltip>
@@ -126,7 +127,7 @@ try {
   .album {
     display: block;
   }
-  
+
   .cd-container {
     position: relative;
     width: 150px;
