@@ -11,6 +11,8 @@ let latestFilm: {
   reviewText: string;
   reviewUrl: string;
   imageUrl: string;
+  watchedDate: string;
+  watchedTime: string;
 } | null = null;
 let error: string | null = null;
 
@@ -29,6 +31,49 @@ try {
       // Extract title
       const titleMatch = itemContent.match(/<title>(.*?)<\/title>/);
       const title = titleMatch ? titleMatch[1] : '';
+      
+      // Extract pubDate with timezone offset
+      const pubDateMatch = itemContent.match(/<pubDate>(.*?)<\/pubDate>/);
+      const pubDate = pubDateMatch ? pubDateMatch[1] : '';
+      
+      // Parse pubDate and calculate watchedTime with offset
+      let watchedTime = '';
+      if (pubDate) {
+        try {
+          // Parse the pubDate string (format: "Wed, 30 Jul 2025 07:35:11 +1200")
+          const date = new Date(pubDate);
+          if (!Number.isNaN(date.getTime())) {
+            // Format as compact time (e.g., "12:44P")
+            const hours = date.getHours();
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const period = hours >= 12 ? 'P' : 'A';
+            const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+            watchedTime = `${displayHours}:${minutes}${period}`;
+          }
+        } catch (e) {
+          // Fallback to original pubDate if parsing fails
+          watchedTime = pubDate;
+        }
+      }
+      
+      // Extract watched date 
+      const watchedDateMatch = itemContent.match(/<letterboxd:watchedDate>(.*?)<\/letterboxd:watchedDate>/);
+      let watchedDate = watchedDateMatch ? watchedDateMatch[1] : '';
+      
+      // Format watchedDate to DD/MMM/YY format
+      if (watchedDate) {
+        try {
+          const date = new Date(watchedDate);
+          if (!Number.isNaN(date.getTime())) {
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+            const year = date.getFullYear().toString().slice(-2);
+            watchedDate = `${day}/${month}/${year}`;
+          }
+        } catch (e) {
+          // Keep original format if parsing fails
+        }
+      }
       
       // Extract link
       const linkMatch = itemContent.match(/<link>(.*?)<\/link>/);
@@ -62,7 +107,9 @@ try {
         rating,
         reviewText,
         reviewUrl: link,
-        imageUrl
+        imageUrl,
+        watchedDate,
+        watchedTime
       };
     }
   } else {
@@ -104,8 +151,10 @@ try {
         <div class="flex justify-between gap-2">
           <div class="flex flex-col gap-1">
             <span class="film-year">{latestFilm.year}</span>
+            <span class="film-time">{latestFilm.watchedTime}</span>
           </div>
           <div class="flex flex-col justify-end items-end gap-1">
+            <span class="film-rating">{latestFilm.rating}</span>
             <span class="film-date">{latestFilm.watchedDate}</span>
           </div>
         </div>
@@ -119,19 +168,23 @@ try {
 ) : null}
 
 <style>
-  .film {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-start;
+  .film-poster-container {
+    flex-shrink: 0;
+    display: block;
   }
 
   .film-poster {
     flex-shrink: 0;
   }
+  
+  .film-ticket-container {
+    bottom: -200px;
+    left: 80px;
+  }
 
   .film-poster img {
-    width: 80px;
-    height: 120px;
+    width: 150px;
+    height: 225px;
     object-fit: cover;
     border-radius: 4px;
     border: 1px solid color-mix(
@@ -139,51 +192,63 @@ try {
       var(--color-foreground),
       var(--color-background) 80%
     );
-    box-shadow: 0 2px 0 color-mix(
-      in lab,
-      var(--color-foreground),
-      var(--color-background) 90%
-    );
+    box-shadow: 3px 3px 0 rgb(0, 0, 0, 0.2);
   }
-
-  .film-details {
-    flex: 1;
-    min-width: 0;
+  
+  .film-ticket,
+  .film-ticket-shadow {
+    width: 180px;
+    height: 112px;
+    border-radius: 3px;
+    transform: rotate(-4deg);
+  }
+  
+  .film-ticket-shadow {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    background-color: rgb(0, 0, 0, 0.2);
+  }
+  
+  .film-ticket {
+    font-family: var(--font-family-mono);
+    line-height: 1;
+    background: #F7F6F5 url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxmaWx0ZXIgaWQ9Im5vaXNlIiB4PSIwJSIgeT0iMCUiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPgogICAgICA8ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9IjAuOSIgbnVtT2N0YXZlcz0iNCIgc2VlZD0iMiIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPgogICAgICA8ZmVDb2xvck1hdHJpeCB0eXBlPSJzYXR1cmF0ZSIgdmFsdWVzPSIwIi8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI0Y3RjZGNSIvPgogIDxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNGN0Y2RjUiIGZpbHRlcj0idXJsKCNub2lzZSkiIG9wYWNpdHk9IjAuMzUiLz4KPC9zdmc+");
+    color: #51493A;
+    border-radius: 3px;
+    padding: 16px;
+    clip-path: polygon(1.5% 0%, 100% 0%, 100% 100%, 1% 100%, 2% 95%, 0.5% 90%, 1.8% 85%, 1.2% 80%, 2% 75%, 0.8% 70%, 1.9% 65%, 1.3% 60%, 2% 55%, 1.1% 50%, 1.7% 45%, 0.9% 40%, 1.8% 35%, 1.4% 30%, 2% 25%, 1.2% 20%, 1.6% 15%, 1% 10%, 1.5% 5%);
+  }
+  
+  .film-cinema {
+    display: block;
   }
   
   .film-title {
-    font-family: var(--font-family-sans);
-    font-weight: 600;
-  }
-
-  .film-review {
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
+    margin: 0;
+    width: 19ch;
     overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    color: #51493A;
   }
   
-  .film a {
-    font-family: var(--font-family-sans);
-    font-size: 0.875rem;
-    font-weight: 600;
+  .film-title,
+  .film-year {
+    font-size: 0.825rem;
+  }
+  
+  .film-rating {
+    font-size: 1.3rem;
+    line-height: 0.5;
+    position: relative;
+    top: -3px;
   }
 
-  .error {
-    color: var(--color-text-secondary);
-    font-style: italic;
+  .film-cinema,
+  .film-time,
+  .film-date {
+    font-size: 0.5rem;
   }
 
-  @media (max-width: 640px) {
-    .film {
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    
-    .film-poster img {
-      width: 60px;
-      height: 90px;
-    }
-  }
 </style> 
