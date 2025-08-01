@@ -482,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     // Use the serverless function to avoid CORS issues
-    const proxyUrl = `/.api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
+    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
     img.src = proxyUrl;
   }
 });
