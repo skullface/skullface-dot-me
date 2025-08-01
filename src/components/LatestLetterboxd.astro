@@ -318,10 +318,19 @@ try {
         vec2 ditherCoord = mod(gl_FragCoord.xy, 4.0);
         float bayerValue = getBayerValue(ditherCoord);
         
-        vec3 dithered = color.rgb + (bayerValue - 0.5) * u_ditherStrength * 0.1;
-        dithered = floor(dithered * 8.0) / 8.0;
+        // Convert to grayscale first for better dithering
+        float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
         
-        gl_FragColor = vec4(dithered, color.a);
+        // Apply dithering with stronger effect
+        float dithered = gray + (bayerValue - 0.5) * u_ditherStrength * 0.3;
+        
+        // Quantize to fewer levels for more pronounced effect
+        dithered = floor(dithered * 4.0) / 4.0;
+        
+        // Keep it grayscale
+        vec3 result = vec3(dithered);
+        
+        gl_FragColor = vec4(result, color.a);
       }
     `
 
@@ -359,8 +368,14 @@ try {
   }
 
   setupGeometry() {
-    // Create buffer for quad vertices
-    const positions = new Float32Array([-1, -1, 0, 0, 1, -1, 1, 0, -1, 1, 0, 1, 1, 1, 1, 1])
+    // Create buffer for quad vertices with corrected texture coordinates
+    // Position: x, y, Texture: u, v (flip v coordinate to fix upside down)
+    const positions = new Float32Array([
+      -1, -1, 0, 1,  // bottom-left
+       1, -1, 1, 1,  // bottom-right  
+      -1,  1, 0, 0,  // top-left
+       1,  1, 1, 0   // top-right
+    ])
 
     const buffer = this.gl.createBuffer()
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
@@ -429,24 +444,6 @@ try {
   }
 }
 
-// Usage examples:
-/*
-// Basic usage
-const shader = new DitherShader();
-const img = new Image();
-img.onload = () => {
-  const processedCanvas = shader.processImage(img, 1.0, 1);
-  document.body.appendChild(processedCanvas);
-};
-img.src = 'your-image.jpg';
-
-// Get as data URL
-const dataURL = shader.processImageToDataURL(img, 1.0, 1);
-
-// Get as blob for upload
-const blob = await shader.processImageToBlob(img, 1.0, 1);
-*/
-
 // Export for use in modules
 if (typeof module !== "undefined" && module.exports) {
   module.exports = DitherShader
@@ -467,7 +464,8 @@ document.addEventListener('DOMContentLoaded', () => {
     img.onload = () => {
       try {
         const shader = new DitherShader();
-        const processedCanvas = shader.processImage(img, 1.0, 2); // Adjust dither strength and pixel size as needed
+        // Use stronger dithering and larger pixel size for more pronounced effect
+        const processedCanvas = shader.processImage(img, 1, 8);
         
         // Replace the original image with the processed one
         filmPosterImg.src = processedCanvas.toDataURL('image/jpeg', 0.9);
