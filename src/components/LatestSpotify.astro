@@ -100,12 +100,20 @@ try {
       <Tooltip 
         content={`${latestSong.name} by ${latestSong.artists.map(artist => artist.name).join(', ')}`}
         ariaLabel={`${latestSong.name} by ${latestSong.artists.map(artist => artist.name).join(', ')}`}
-        class="album-poster-container draggable"
+        class="album draggable"
       >
-        <img class="album-poster" src={latestSong.album.images[0].url} alt="" />
-        <div slot="tooltip-content">
-          <div class="song-title">{latestSong.name}</div>
-          <div class="artist-name">{latestSong.artists.map(artist => artist.name).join(', ')}</div>
+        
+        <div class="cd-container">
+          <div class="cd-face cd-front">
+            <img src={latestSong.album.images[0].url} alt="" class="cd-image" />
+          </div>
+          <div class="cd-face cd-back">
+            <div class="cd-back-content" />
+          </div>
+        </div>
+        <span slot="tooltip-content">
+          <span class="song-title">{latestSong.name}</span> —
+          <span class="artist-name">{latestSong.artists.map(artist => artist.name).join(', ')}</span>
         </div>
       </Tooltip>
     )}
@@ -115,48 +123,141 @@ try {
 ) : null}
 
 <style>
-  .album-poster-container {
+  .album {
     display: block;
   }
-  img.album-poster {
+  
+  .cd-container {
     position: relative;
-    width: 120px;
-    height: 120px;
-    border-radius: 120px;
-    border: 1px solid color-mix(
-      in lab,
-      var(--color-foreground),
-      var(--color-background) 80%
-    );
+    width: 150px;
+    height: 150px;
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+  }
+  
+  .cd-container:hover {
+    transform: rotateY(180deg);
+  }
+  
+  .cd-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 3px 3px 0 rgb(0, 0, 0, 0.2);
+  }
+  
+  .cd-front {
+    z-index: 2;
+  }
+  
+  .cd-face::before {
+    content: "";
+    display: block;
+    position: absolute;
+    z-index: 1;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: transparent;
+    height: 63px;
+    width: 63px;
+    border: 11px solid #666;
+    border-radius: inherit;
+    opacity: 0.8;
+    mix-blend-mode: hard-light;
+  }
+  
+  .cd-image {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
     object-fit: cover;
     box-shadow: 0 2px 0 rgb(0, 0, 0, 0.2);
+    transform: rotate(15deg);
+    mask: radial-gradient(circle, transparent 20px, black 20px);
   }
-
-  .song-title {
-    font-weight: 600;
-    color: var(--color-foreground);
-    margin-bottom: 2px;
+  
+  .cd-back {
+    transform: rotateY(180deg);
   }
-
-  .artist-name {
-    color: color-mix(
-      in lab,
-      var(--color-foreground),
-      var(--color-background) 40%
+  
+  .cd-back-content {
+    --c-white: #fff;
+    --c-offwhite: #f3f3f3;
+    --c-gainsboro: #ddd;
+    --c-mid-gray: #bbb;
+    --c-dark-gray: #aaa;
+    --c-granite-gray: #666;
+    --c-light-periwinkle: #c0c8e3;
+    --c-platinum: #e8d4e9;
+    --c-violet-100: #d9ccee;
+    --c-pink-lavender: #d7b0c5;
+    --c-languid-lavender: #cec0e3;
+    --c-violet-150: #ccbccd;
+    --c-black-shadows: #c6b1bc;
+    --c-stale-beige: #eef6d3;
+    --c-light-moss-green: #a7dda7;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 3px solid var(--c-gainsboro);
+    background-color: var(--c-mid-gray);
+    background-image: conic-gradient(
+      var(--c-white),
+      var(--c-offwhite),
+      var(--c-gainsboro),
+      var(--c-mid-gray),
+      var(--c-dark-gray),
+      var(--c-black-shadows),
+      var(--c-pink-lavender),
+      var(--c-white),
+      var(--c-stale-beige),
+      var(--c-light-moss-green),
+      var(--c-languid-lavender),
+      var(--c-platinum),
+      var(--c-pink-lavender),
+      var(--c-gainsboro),
+      var(--c-offwhite),
+      var(--c-white),
+      var(--c-gainsboro),
+      var(--c-mid-gray),
+      var(--c-dark-gray),
+      var(--c-black-shadows),
+      var(--c-pink-lavender),
+      var(--c-white),
+      var(--c-stale-beige),
+      var(--c-light-moss-green),
+      var(--c-light-periwinkle),
+      var(--c-languid-lavender),
+      var(--c-platinum),
+      var(--c-pink-lavender),
+      var(--c-mid-gray),
+      var(--c-gainsboro),
+      var(--c-white)
     );
-    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    mask: radial-gradient(circle, transparent 20px, black 20px);
+    animation: rotate 15s linear infinite;
   }
-
-  /* Add focus styles for better accessibility */
-  .tooltip-container:focus-visible {
-    border-radius: 120px;
+  
+  @keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 </style>
 
 <script>
   // Add keyboard support for tooltip
   document.addEventListener('DOMContentLoaded', () => {
-    const albumPosters = document.querySelectorAll('.album-poster');
+    const albumPosters = document.querySelectorAll('.album');
     
     albumPosters.forEach(poster => {
       const tooltip = poster.querySelector('.tooltip');

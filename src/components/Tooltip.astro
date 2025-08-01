@@ -39,25 +39,20 @@ const { content, children, class: className = "", ariaLabel } = Astro.props;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
+    min-width: 220px;
     margin-bottom: 8px;
     padding: 8px 12px;
-    background-color: var(--color-background);
-    border: 1px solid color-mix(
-      in lab,
-      var(--color-foreground),
-      var(--color-background) 80%
-    );
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    font-size: 14px;
+    background-color: var(--color-foreground);
+    color: var(--color-background);
+    font-family: var(--font-family-sans);
     line-height: 1.4;
-    white-space: nowrap;
+    font-size: 14px;
+    border-radius: 6px;
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.2s ease, visibility 0.2s ease;
     pointer-events: none;
-    font-weight: 600;
   }
 
   .tooltip-content {
