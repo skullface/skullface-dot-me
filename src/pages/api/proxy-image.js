@@ -1,36 +1,43 @@
-export default async function handler(req, res) {
-  // Only allow GET requests
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  const { url } = req.query;
+export async function GET({ request }) {
+  const url = new URL(request.url);
+  const imageUrl = url.searchParams.get('url');
   
-  if (!url) {
-    return res.status(400).json({ error: 'Missing URL parameter' });
+  if (!imageUrl) {
+    return new Response(JSON.stringify({ error: 'Missing URL parameter' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(imageUrl);
     
     if (!response.ok) {
-      return res.status(response.status).json({ error: 'Failed to fetch image' });
+      return new Response(JSON.stringify({ error: 'Failed to fetch image' }), {
+        status: response.status,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     const imageBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     
     // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.setHeader('Content-Type', contentType);
+    const headers = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Cache-Control': 'public, max-age=3600',
+      'Content-Type': contentType
+    };
     
     // Send the image buffer
-    res.send(Buffer.from(imageBuffer));
+    return new Response(imageBuffer, { headers });
   } catch (error) {
     console.error('Error proxying image:', error);
-    return res.status(500).json({ error: 'Failed to proxy image' });
+    return new Response(JSON.stringify({ error: 'Failed to proxy image' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 } 
