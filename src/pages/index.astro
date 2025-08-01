@@ -19,7 +19,9 @@ const title = "skullface.me 🫶";
       Currently running <b>False Luck</b> <i>(coming soon!)</i> and design engineering at <b>Vercel <code>▲</code></b>.
     </p>
 
-    <span class="glitter"><Heart class="glitter" /></span>
+    <span class="glitter">
+      <Heart class="glitter" />
+    </span>
     
     <LatestLetterboxd />
     <LatestSpotify />
@@ -52,3 +54,97 @@ const title = "skullface.me 🫶";
     }
   }
 </style>
+
+<script is:inline>
+  // Drag & drop
+  const draggables = document.querySelectorAll(".draggable");
+  
+  let isDragging = false;
+  let isMouseDown = false;
+  let startX, startY;
+  let offsetX, offsetY;
+  let currentDraggable = null;
+  const dragThreshold = 5;
+  
+  draggables.forEach(draggable => {
+    draggable.style.position = 'absolute';
+    draggable.style.cursor = 'grab';
+    
+    // Mouse events
+    draggable.addEventListener('mousedown', (e) => {
+      isMouseDown = true;
+      currentDraggable = draggable;
+      startX = e.clientX;
+      startY = e.clientY;
+      offsetX = e.clientX - draggable.offsetLeft;
+      offsetY = e.clientY - draggable.offsetTop;
+      e.preventDefault();
+    });
+    
+    // Touch events
+    draggable.addEventListener('touchstart', (e) => {
+      isMouseDown = true;
+      currentDraggable = draggable;
+      const touch = e.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      offsetX = touch.clientX - draggable.offsetLeft;
+      offsetY = touch.clientY - draggable.offsetTop;
+      e.preventDefault();
+    });
+  });
+  
+  // Mouse move and up events
+  document.addEventListener('mousemove', (e) => {
+    if (isMouseDown && !isDragging && currentDraggable) {
+      const deltaX = Math.abs(e.clientX - startX);
+      const deltaY = Math.abs(e.clientY - startY);
+      
+      if (deltaX > dragThreshold || deltaY > dragThreshold) {
+        isDragging = true;
+        currentDraggable.style.cursor = 'grabbing';
+      }
+    }
+    
+    if (isDragging && currentDraggable) {
+      currentDraggable.style.left = (e.clientX - offsetX) + 'px';
+      currentDraggable.style.top = (e.clientY - offsetY) + 'px';
+    }
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (currentDraggable) {
+      currentDraggable.style.cursor = 'grab';
+    }
+    isDragging = false;
+    isMouseDown = false;
+    currentDraggable = null;
+  });
+  
+  // Touch move and end events
+  document.addEventListener('touchmove', (e) => {
+    if (isMouseDown && !isDragging && currentDraggable) {
+      const touch = e.touches[0];
+      const deltaX = Math.abs(touch.clientX - startX);
+      const deltaY = Math.abs(touch.clientY - startY);
+      
+      if (deltaX > dragThreshold || deltaY > dragThreshold) {
+        isDragging = true;
+      }
+    }
+    
+    if (isDragging && currentDraggable) {
+      const touch = e.touches[0];
+      currentDraggable.style.left = (touch.clientX - offsetX) + 'px';
+      currentDraggable.style.top = (touch.clientY - offsetY) + 'px';
+      e.preventDefault(); // Prevent scrolling while dragging
+    }
+  });
+  
+  document.addEventListener('touchend', () => {
+    isDragging = false;
+    isMouseDown = false;
+    currentDraggable = null;
+  });
+  
+</script>
