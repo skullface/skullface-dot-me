@@ -100,11 +100,11 @@ try {
       <Tooltip 
         content={`${latestSong.name} by ${latestSong.artists.map(artist => artist.name).join(', ')}`}
         ariaLabel={`${latestSong.name} by ${latestSong.artists.map(artist => artist.name).join(', ')}`}
-        class="album draggable"
+        class="album !absolute left-0 top-[200px] md:left-[324px] md:top-0"
       >
         <div class="cd-container">
           <div class="cd-face cd-front">
-            <img src={latestSong.album.images[0].url} alt="" class="cd-image" />
+            <img src={latestSong.album.images[0].url} alt="" class="cd-image" id="album-image" />
           </div>
           <div class="cd-face cd-back">
             <div class="cd-back-content" />
@@ -124,17 +124,20 @@ try {
 ) : null}
 
 <style>
+  :root {
+    --cd-size: 170px;
+  }
+  
   .album {
     display: block;
   }
 
   .cd-container {
     position: relative;
-    width: 150px;
-    height: 150px;
+    width: var(--cd-size);
+    height: var(--cd-size);
     transform-style: preserve-3d;
     transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    cursor: pointer;
   }
   
   .cd-container:hover {
@@ -175,8 +178,8 @@ try {
   }
   
   .cd-image {
-    width: 150px;
-    height: 150px;
+    width: var(--cd-size);
+    height: var(--cd-size);
     border-radius: 50%;
     object-fit: cover;
     box-shadow: 0 2px 0 rgb(0, 0, 0, 0.2);
@@ -204,8 +207,8 @@ try {
     --c-black-shadows: #c6b1bc;
     --c-stale-beige: #eef6d3;
     --c-light-moss-green: #a7dda7;
-    width: 150px;
-    height: 150px;
+    width: var(--cd-size);
+    height: var(--cd-size);
     border-radius: 50%;
     border: 3px solid var(--c-gainsboro);
     background-color: var(--c-mid-gray);

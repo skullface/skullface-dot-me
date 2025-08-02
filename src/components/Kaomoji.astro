@@ -1,0 +1,28 @@
+---
+interface Props {
+  text?: string;
+  position?: string;
+}
+
+const { text, position } = Astro.props;
+const defaultText = `(⸝⸝ • ◡ • ⸝⸝)<br>
+⊹ ࣪ ˖ 💀 ⟡ ࣪ ˖<br>
+&nbsp; 🤘 ⋆✴︎˚｡⋆<br>
+&nbsp;🎮  ݁˖ .✦ 🌈<br>
+˚.⁺⊹ 🇵🇷 . ݁⊹`;
+
+const displayText = text || defaultText;
+const displayPosition = position || "top-[160px] left-[186px] md:top-[24px]";
+---
+
+<span class={`absolute kaomoji ${displayPosition}`} set:html={displayText}>
+</span>
+
+<style>
+  .kaomoji {
+    font-family: var(--font-family-mono);
+    color: var(--color-midground);
+    width: fit-content;
+    height: fit-content;
+  }
+</style>

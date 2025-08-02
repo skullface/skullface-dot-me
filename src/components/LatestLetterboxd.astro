@@ -127,13 +127,14 @@ try {
       <Tooltip 
         content={`${latestFilm.title} (${latestFilm.year}) - ${latestFilm.rating}`}
         ariaLabel={`Poster for ${latestFilm.title} (${latestFilm.year})`}
-        class="film-poster-container  draggable"
+        class="film-poster-container !absolute"
       >
         <figure class="film-poster">
           <img src={latestFilm.imageUrl} alt="" id="film-poster-img" />
         </figure>
         <div slot="tooltip-content">
           <div class="film-title-tooltip">
+            <span class="tooltip-meta">Last watched </span>
             {latestFilm.title} 
             (<span>{latestFilm.year}</span>)
           </div>
@@ -141,7 +142,7 @@ try {
       </Tooltip>
     )}
     
-    <div class="film-ticket-container draggable relative">
+    <div class="film-ticket-container absolute top-[12px] left-[130px] md:top-[190px] md:left-[24px]">
       <div class="film-ticket-shadow" />
       <div class="film-ticket flex flex-col justify-between gap-3 ">
         <div class="flex flex-col gap-1">

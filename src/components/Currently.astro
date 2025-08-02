@@ -1,0 +1,29 @@
+---
+import Tooltip from './Tooltip.astro';
+---
+
+<div class="box absolute left-0 bottom-0 md:left-[236px] md:bottom-[48px]">
+  <h2>currently</h2>
+    <div class="flex flex-col">
+      <Tooltip content="design engineer" ariaLabel="design engineer">
+        <div class="block">working at vercel ▲</div>
+      </Tooltip>
+      <Tooltip content="coming halloween" ariaLabel="coming halloween">
+        <div class="block">building false luck 🤞</div>
+      </Tooltip>
+      <Tooltip content="N-ZAP '85 main" ariaLabel="N-ZAP '85 main">
+        <div class="block">playing splatoon 3 🦑</div>
+      </Tooltip>
+    </div>
+</div>
+
+<style>
+  .box {
+    width: fit-content;
+    height: fit-content;
+  }
+  
+  h2, ul {
+    margin: 0;
+  }
+</style>

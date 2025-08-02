@@ -1,31 +1,40 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Heart from "../components/Heart.astro";
 import LatestLetterboxd from "../components/LatestLetterboxd.astro";
 import LatestSpotify from "../components/LatestSpotify.astro";
+import Kaomoji from "../components/Kaomoji.astro";
+import Currently from "../components/Currently.astro";
+
 const title = "skullface.me 🫶";
 ---
 
+<script src="/scripts/ditherShader.js" defer></script>
 <Layout title={title}>
   <main>
     <h1>
-      I make websites, brands, and art~ 👋 (⸝⸝ • ◡ • ⸝⸝) ⊹`*✧･˖
+      i make websites, brands, and art!
     </h1>
 
     <p>
-      I’m <b>@skullface</b>, “Skully” for short! I’m a creative generalist
-      always trying to leave things better than I found them.
+      hiii i’m <b>@skullface</b>, “skully” for short! i’m a creative generalist <br class="hidden md:block" />
+      always trying to leave things better than i found them.
     </p>
     
-    <div class="flex flex-col gap-4 w-full h-full min-h-[300px] min-w-[300px] border border-[#ff0000]">
+    <div class="relative flex flex-col mt-6 gap-4 w-full h-full min-h-[500px] md:min-h-[340px]">
       <LatestLetterboxd />
       <LatestSpotify />
+      <Currently />
+      <Kaomoji />
     </div>
     
   </main>
 </Layout>
 
 <style>
+  main {
+    max-width: var(--page-width);
+  }
+
   h1 {
     @media all and (max-width: 680px) {
       font-size: 2.5em;
@@ -41,107 +50,4 @@ const title = "skullface.me 🫶";
       line-height: 85%;
     }
   }
-
-  .glitter {
-    @apply block mb-2 mt-6 md:mt-0;
-    svg {
-      width: 32px;
-      height: 32px;
-      fill: var(--color-primary);
-    }
-  }
 </style>
-
-<script is:inline>
-  // Drag & drop
-  const draggables = document.querySelectorAll(".draggable");
-  
-  let isDragging = false;
-  let isMouseDown = false;
-  let startX, startY;
-  let offsetX, offsetY;
-  let currentDraggable = null;
-  const dragThreshold = 5;
-  
-  draggables.forEach(draggable => {
-    draggable.style.position = 'absolute';
-    draggable.style.cursor = 'grab';
-    
-    // Mouse events
-    draggable.addEventListener('mousedown', (e) => {
-      isMouseDown = true;
-      currentDraggable = draggable;
-      startX = e.clientX;
-      startY = e.clientY;
-      offsetX = e.clientX - draggable.offsetLeft;
-      offsetY = e.clientY - draggable.offsetTop;
-      e.preventDefault();
-    });
-    
-    // Touch events
-    draggable.addEventListener('touchstart', (e) => {
-      isMouseDown = true;
-      currentDraggable = draggable;
-      const touch = e.touches[0];
-      startX = touch.clientX;
-      startY = touch.clientY;
-      offsetX = touch.clientX - draggable.offsetLeft;
-      offsetY = touch.clientY - draggable.offsetTop;
-      e.preventDefault();
-    });
-  });
-  
-  // Mouse move and up events
-  document.addEventListener('mousemove', (e) => {
-    if (isMouseDown && !isDragging && currentDraggable) {
-      const deltaX = Math.abs(e.clientX - startX);
-      const deltaY = Math.abs(e.clientY - startY);
-      
-      if (deltaX > dragThreshold || deltaY > dragThreshold) {
-        isDragging = true;
-        currentDraggable.style.cursor = 'grabbing';
-      }
-    }
-    
-    if (isDragging && currentDraggable) {
-      currentDraggable.style.left = (e.clientX - offsetX) + 'px';
-      currentDraggable.style.top = (e.clientY - offsetY) + 'px';
-    }
-  });
-  
-  document.addEventListener('mouseup', () => {
-    if (currentDraggable) {
-      currentDraggable.style.cursor = 'grab';
-    }
-    isDragging = false;
-    isMouseDown = false;
-    currentDraggable = null;
-  });
-  
-  // Touch move and end events
-  document.addEventListener('touchmove', (e) => {
-    if (isMouseDown && !isDragging && currentDraggable) {
-      const touch = e.touches[0];
-      const deltaX = Math.abs(touch.clientX - startX);
-      const deltaY = Math.abs(touch.clientY - startY);
-      
-      if (deltaX > dragThreshold || deltaY > dragThreshold) {
-        isDragging = true;
-      }
-    }
-    
-    if (isDragging && currentDraggable) {
-      const touch = e.touches[0];
-      currentDraggable.style.left = (touch.clientX - offsetX) + 'px';
-      currentDraggable.style.top = (touch.clientY - offsetY) + 'px';
-      e.preventDefault(); // Prevent scrolling while dragging
-    }
-  });
-  
-  document.addEventListener('touchend', () => {
-    isDragging = false;
-    isMouseDown = false;
-    currentDraggable = null;
-  });
-  
-</script>
