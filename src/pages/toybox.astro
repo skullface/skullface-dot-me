@@ -1,0 +1,50 @@
+---
+import Layout from "../layouts/Layout.astro";
+const title = "Toybox";
+
+const toys = [
+  'whimsical.heartette.net__diary.gif',
+  'jellyfishforest.com-duckyfeet__polaroid.gif',
+  'cinni.net__tamagotchi.png',
+  'mizunotic.neocities.org__vhs.png',
+  'lejlart.com-apple.html__skull.gif',
+  'mooncandy.net-stef__bloody-condom.gif',
+  'rosedryad.com__jupiter.png',
+  'lejlart.com-apple.html__bunstrawbcake.gif',
+  'misa.phoophie.com__burger.gif',
+  'arunyi.art__keroppi.gif',
+  'lastsecret.net-bitmapdreams__seasalt.gif',
+  'mooncandy.toys__tina-alien-cat.png',
+  'artwork.neocities.org__soot-sprite-jar.gif',
+  'blanketfort.neocities.org__mailbear.gif',
+  'jeith.com__spot.gif',
+  'soda.bake-neko.net__tofu.gif',
+  'lastsecret.net-bitmapdreams__paper-star.gif',
+  'lastsecret.net-bitmapdreams__ringpop.gif',
+]
+
+function parseUrlFromToy(toy: string): string {
+  const urlPart = toy.split('__')[0];  
+  const parsedUrl = urlPart.replace(/(\.(org|net|com))-/g, '$1/');
+  return `http://${parsedUrl}`;
+}
+---
+
+<Layout title={title}>
+  <main>
+    <h1>{title}</h1>
+    
+    <div class="">
+    {
+      toys.map((toy) => {
+        const parsedUrl = parseUrlFromToy(toy);
+        return (
+          <a href={parsedUrl} target="_blank">
+            <img alt="" src={`/toybox/${toy}`} class="inline" />
+            &nbsp;
+          </a>
+        );
+      })
+    }
+  </main>
+</Layout>
