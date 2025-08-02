@@ -12,7 +12,7 @@ export default {
       sans: ['ARS Maquette', '-apple-system', 'Avenir Next', 'Avenir',
       'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
       serif: ['Source Serif 4', 'ui-serif', 'Georgia', 'Times New Roman', 'serif'],
-      mono: ['Courier Prime', 'ui-monospace', 'Courier New', 'mono'],
+      mono: ['Source Code Pro', 'ui-monospace', 'Courier New', 'mono'],
     },
 		extend: {
       maxWidth: {
