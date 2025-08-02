@@ -22,5 +22,6 @@ pnpm-debug.log*
 node_modules
 .parcel-cache
 
-# vercel
+# vendor
 .vercel
+.vscode
