@@ -284,4 +284,47 @@ try {
       }
     });
   });
+</script>
+
+<script is:inline>
+  // Apply dither effect to album image
+  document.addEventListener('DOMContentLoaded', () => {
+    const albumImage = document.getElementById('album-image');
+    
+    if (albumImage) {
+      // Get the original image URL
+      const originalSrc = albumImage.src;
+      
+      // Create a new image to avoid CORS issues
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          // Use the shared DitherShader from the global scope
+          if (window.DitherShader) {
+            const shader = new window.DitherShader();
+            // Use stronger dithering and larger pixel size for more pronounced effect
+            const processedCanvas = shader.processImage(img, 1, 4);
+            
+            // Replace the original image with the processed one
+            albumImage.src = processedCanvas.toDataURL('image/jpeg', 0.9);
+          } else {
+            console.warn('DitherShader not available');
+          }
+        } catch (error) {
+          console.warn('Failed to apply dither effect:', error);
+          // Keep original image if dither fails
+        }
+      };
+      
+      img.onerror = () => {
+        console.warn('Failed to load image for dither processing');
+      };
+      
+      // Use the serverless function to avoid CORS issues
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
+      img.src = proxyUrl;
+    }
+  });
 </script> 
