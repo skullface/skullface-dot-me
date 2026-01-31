@@ -1,31 +1,18 @@
 ---
 // Fetch the latest Spotify activity
-import fetch from 'node-fetch';
-import Tooltip from './Tooltip.astro';
+import fetch from "node-fetch";
 
 interface SpotifyTrack {
   name: string;
   artists: Array<{ name: string }>;
-  album: {
-    name: string;
-    images: Array<{ url: string }>;
-  };
-  external_urls: {
-    spotify: string;
-  };
 }
 
 interface SpotifyTokenResponse {
   access_token: string;
-  token_type: string;
-  expires_in: number;
 }
 
 interface SpotifyRecentlyPlayed {
-  items: Array<{
-    track: SpotifyTrack;
-    played_at: string;
-  }>;
+  items: Array<{ track: SpotifyTrack }>;
 }
 
 let latestSong: SpotifyTrack | null = null;
@@ -41,295 +28,76 @@ try {
     error = "Spotify credentials not configured";
   } else {
     // Get access token using refresh token
-    const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken
-      })
-    });
+    const tokenResponse = await fetch(
+      "https://accounts.spotify.com/api/token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+        },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+        }),
+      }
+    );
 
     if (!tokenResponse.ok) {
-      throw new Error('Failed to get access token');
+      throw new Error("Failed to get access token");
     }
 
-    const tokenData = await tokenResponse.json() as SpotifyTokenResponse;
+    const tokenData = (await tokenResponse.json()) as SpotifyTokenResponse;
     const accessToken = tokenData.access_token;
 
     // Fetch recently played tracks
-    const recentlyPlayedResponse = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=1', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
+    const recentlyPlayedResponse = await fetch(
+      "https://api.spotify.com/v1/me/player/recently-played?limit=1",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       }
-    });
+    );
 
     if (!recentlyPlayedResponse.ok) {
-      throw new Error('Failed to fetch recently played tracks');
+      throw new Error("Failed to fetch recently played tracks");
     }
 
-    const recentlyPlayedData = await recentlyPlayedResponse.json() as SpotifyRecentlyPlayed;
-    
+    const recentlyPlayedData =
+      (await recentlyPlayedResponse.json()) as SpotifyRecentlyPlayed;
+
     if (recentlyPlayedData.items && recentlyPlayedData.items.length > 0) {
       latestSong = recentlyPlayedData.items[0].track;
     }
   }
 } catch (err) {
-  error = err instanceof Error ? err.message : 'Unknown error occurred';
-  console.error('Spotify API error:', err);
-  
+  error = err instanceof Error ? err.message : "Unknown error occurred";
+  console.error("Spotify API error:", err);
+
   // Add more detailed error logging
   if (err instanceof Error) {
-    console.error('Error details:', {
+    console.error("Error details:", {
       message: err.message,
       stack: err.stack,
-      clientId: clientId ? 'set' : 'missing',
-      clientSecret: clientSecret ? 'set' : 'missing', 
-      refreshToken: refreshToken ? 'set' : 'missing'
+      clientId: clientId ? "set" : "missing",
+      clientSecret: clientSecret ? "set" : "missing",
+      refreshToken: refreshToken ? "set" : "missing",
     });
   }
 }
 ---
 
-{latestSong && !error ? (
-  <>
-    {latestSong.album.images && latestSong.album.images.length > 0 && (
-      <Tooltip 
-        content={`${latestSong.name} by ${latestSong.artists.map(artist => artist.name).join(', ')}`}
-        ariaLabel={`${latestSong.name} by ${latestSong.artists.map(artist => artist.name).join(', ')}`}
-        class="album !absolute left-0 top-[200px] md:left-[324px] md:top-0"
-      >
-        <div class="cd-container">
-          <div class="cd-face cd-front">
-            <img src={latestSong.album.images[0].url} alt="" class="cd-image" id="album-image" />
-          </div>
-          <div class="cd-face cd-back">
-            <div class="cd-back-content" />
-          </div>
-        </div>
-        <span slot="tooltip-content">
-          <span class="tooltip-meta">Last listened to </span>
-          <span class="song-title">{latestSong.name}</span> 
-          <span style="opacity: 0.5;"> — </span>
-          <span class="artist-name">{latestSong.artists.map(artist => artist.name).join(', ')}</span>
-        </div>
-      </Tooltip>
-    )}
-  </>
-) : error ? (
-  <></>
-) : null}
-
-<style>
-  /* CD holographic side reference: https://codepen.io/chancethedev/pen/wvpEwvE */
-
-  :root {
-    --cd-size: 170px;
-  }
-  
-  .album {
-    display: block;
-  }
-
-  .cd-container {
-    position: relative;
-    width: var(--cd-size);
-    height: var(--cd-size);
-    transform-style: preserve-3d;
-    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-  
-  .cd-container:hover {
-    transform: rotateY(180deg);
-  }
-  
-  .cd-face {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    backface-visibility: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 3px 3px 0 rgb(0, 0, 0, 0.2);
-  }
-  
-  .cd-front {
-    z-index: 2;
-  }
-  
-  .cd-face::before {
-    content: "";
-    display: block;
-    position: absolute;
-    z-index: 1;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    background: transparent;
-    height: 63px;
-    width: 63px;
-    border: 11px solid #666;
-    border-radius: inherit;
-    opacity: 0.8;
-    mix-blend-mode: hard-light;
-  }
-  
-  .cd-image {
-    width: var(--cd-size);
-    height: var(--cd-size);
-    border-radius: 50%;
-    object-fit: cover;
-    box-shadow: 0 2px 0 rgb(0, 0, 0, 0.2);
-    transform: rotate(15deg);
-    mask: radial-gradient(circle, transparent 20px, black 20px);
-  }
-  
-  .cd-back {
-    transform: rotateY(180deg);
-  }
-  
-  .cd-back-content {
-    --c-white: #fff;
-    --c-offwhite: #f3f3f3;
-    --c-gainsboro: #ddd;
-    --c-mid-gray: #bbb;
-    --c-dark-gray: #aaa;
-    --c-granite-gray: #666;
-    --c-light-periwinkle: #c0c8e3;
-    --c-platinum: #e8d4e9;
-    --c-violet-100: #d9ccee;
-    --c-pink-lavender: #d7b0c5;
-    --c-languid-lavender: #cec0e3;
-    --c-violet-150: #ccbccd;
-    --c-black-shadows: #c6b1bc;
-    --c-stale-beige: #eef6d3;
-    --c-light-moss-green: #a7dda7;
-    width: var(--cd-size);
-    height: var(--cd-size);
-    border-radius: 50%;
-    border: 3px solid var(--c-gainsboro);
-    background-color: var(--c-mid-gray);
-    background-image: conic-gradient(
-      var(--c-white),
-      var(--c-offwhite),
-      var(--c-gainsboro),
-      var(--c-mid-gray),
-      var(--c-dark-gray),
-      var(--c-black-shadows),
-      var(--c-pink-lavender),
-      var(--c-white),
-      var(--c-stale-beige),
-      var(--c-light-moss-green),
-      var(--c-languid-lavender),
-      var(--c-platinum),
-      var(--c-pink-lavender),
-      var(--c-gainsboro),
-      var(--c-offwhite),
-      var(--c-white),
-      var(--c-gainsboro),
-      var(--c-mid-gray),
-      var(--c-dark-gray),
-      var(--c-black-shadows),
-      var(--c-pink-lavender),
-      var(--c-white),
-      var(--c-stale-beige),
-      var(--c-light-moss-green),
-      var(--c-light-periwinkle),
-      var(--c-languid-lavender),
-      var(--c-platinum),
-      var(--c-pink-lavender),
-      var(--c-mid-gray),
-      var(--c-gainsboro),
-      var(--c-white)
-    );
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    mask: radial-gradient(circle, transparent 20px, black 20px);
-    animation: rotate 15s linear infinite;
-  }
-  
-  @keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-</style>
-
-<script>
-  // Add keyboard support for tooltip
-  document.addEventListener('DOMContentLoaded', () => {
-    const albumPosters = document.querySelectorAll('.album');
-    
-    albumPosters.forEach(poster => {
-      const tooltip = poster.querySelector('.tooltip');
-      
-      if (tooltip) {
-        // Show tooltip on focus for keyboard users
-        poster.addEventListener('focus', () => {
-          tooltip.setAttribute('aria-hidden', 'false');
-        });
-        
-        // Hide tooltip on blur
-        poster.addEventListener('blur', () => {
-          tooltip.setAttribute('aria-hidden', 'true');
-        });
-        
-        // Handle escape key to hide tooltip
-        poster.addEventListener('keydown', (e) => {
-          const keyboardEvent = e as KeyboardEvent;
-          if (keyboardEvent.key === 'Escape') {
-            (poster as HTMLElement).blur();
-          }
-        });
-      }
-    });
-  });
-</script>
-
-<script is:inline>
-  // Apply dither effect to album image
-  document.addEventListener('DOMContentLoaded', () => {
-    const albumImage = document.getElementById('album-image');
-    
-    if (albumImage) {
-      // Get the original image URL
-      const originalSrc = albumImage.src;
-      
-      // Create a new image to avoid CORS issues
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      
-      img.onload = () => {
-        try {
-          // Use the shared DitherShader from the global scope
-          if (window.DitherShader) {
-            const shader = new window.DitherShader();
-            // Use stronger dithering and larger pixel size for more pronounced effect
-            const processedCanvas = shader.processImage(img, 1, 4);
-            
-            // Replace the original image with the processed one
-            albumImage.src = processedCanvas.toDataURL('image/jpeg', 0.9);
-          } else {
-            console.warn('DitherShader not available');
-          }
-        } catch (error) {
-          console.warn('Failed to apply dither effect:', error);
-          // Keep original image if dither fails
-        }
-      };
-      
-      img.onerror = () => {
-        console.warn('Failed to load image for dither processing');
-      };
-      
-      // Use the serverless function to avoid CORS issues
-      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
-      img.src = proxyUrl;
-    }
-  });
-</script> 
+{
+  latestSong && !error ? (
+    <span class="lowercase">
+      <span class="song-title">{latestSong.name}</span>
+      <span style="opacity: 0.5;"> by </span>
+      <span class="artist-name">
+        {latestSong.artists.map((artist) => artist.name).join(", ")}
+      </span>
+    </span>
+  ) : error ? (
+    <>a song</>
+  ) : null
+}
