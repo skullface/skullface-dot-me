@@ -2,12 +2,16 @@
 import Logo from "../components/Logo.astro";
 ---
 
-<a href="#content" class="z-50 !absolute top-4 left-0 bg-foreground text-background !p-3 m-3 sr-only focus:not-sr-only">Skip to content</a>
-  
-<header>
-  <nav class="py-4 px-6 flex justify-between items-center">
+<a
+  href="#content"
+  class="z-50 !absolute top-0 left-0 bg-foreground text-background !p-3 sr-only focus:not-sr-only"
+  >Skip to content</a
+>
+
+<header class="w-[var(--page-width)] mx-auto p-[2em]">
+  <nav class="flex justify-between items-center">
     <Logo />
-    <ul class="list-none flex gap-4 leading-none">
+    <ul class="list-none flex gap-4 leading-none lowercase">
       <li>
         <a href="/about">About</a>
       </li>
