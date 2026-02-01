@@ -5,54 +5,56 @@ import type { CollectionEntry } from "astro:content";
 import Card from "../../components/Card.astro";
 
 export async function getStaticPaths() {
-  const allPosts = await getCollection("blog");
+  const blogPosts = await getCollection("blog");
+  const notes = await getCollection("notes");
 
   const tags: string[] = [];
-
-  allPosts.forEach((post: CollectionEntry<"blog">) => {
-    post.data.tags?.forEach((tag: string) => {
-      tags.push(tag.toLowerCase());
-    });
+  blogPosts.forEach((post: CollectionEntry<"blog">) => {
+    post.data.tags?.forEach((t: string) => tags.push(t.toLowerCase()));
+  });
+  notes.forEach((note: CollectionEntry<"notes">) => {
+    note.data.tags?.forEach((t: string) => tags.push(t.toLowerCase()));
   });
 
-  return Array.from(new Set(tags)).map((tag) => {
-    return {
-      params: { tag },
-      props: {
-        tag,
-        posts: allPosts.filter((post: CollectionEntry<"blog">) =>
-          (post.data.tags ?? [])
-            .map((tag: string) => tag.toLowerCase())
-            .includes(tag)
-        ),
-      },
-    };
-  });
+  return Array.from(new Set(tags)).map((tag) => ({
+    params: { tag },
+  }));
 }
 
-interface Props {
-  tag: string;
-  posts: CollectionEntry<"blog">[];
-}
+const tag = Astro.params.tag ?? "";
+const blogPosts = await getCollection("blog");
+const notes = await getCollection("notes");
 
-const { tag, posts } = Astro.props as Props;
+const hasTag = (tagList: string[] | undefined, t: string) =>
+  (tagList ?? []).map((x: string) => x.toLowerCase()).includes(t.toLowerCase());
+
+const matchingBlog = blogPosts.filter((post) => hasTag(post.data.tags, tag));
+const matchingNotes = notes.filter((note) => hasTag(note.data.tags, tag));
+
+const byDate = (a: { data: { datePublished: Date } }, b: { data: { datePublished: Date } }) =>
+  new Date(b.data.datePublished).getTime() - new Date(a.data.datePublished).getTime();
+const items = [...matchingBlog, ...matchingNotes].sort(byDate);
 ---
 
-<Layout title={`Blog posts about ${tag}`}>
+<Layout title={`Posts and notes tagged ${tag}`}>
   <main>
-    <h1>Posts tagged with <b>{tag}</b></h1>
+    <h1>Tagged with <b>{tag}</b></h1>
     <ul class="grid gap-2">
       {
-        posts.map((post) => (
-          <li>
-            <Card
-              href={`/blog/${post.id}`}
-              title={post.data.title}
-              body={post.data.description}
-              footer={post.data.datePublished.toDateString()}
-            />
-          </li>
-        ))
+        items.map((item) => {
+          const isBlog = "description" in item.data;
+          const href = isBlog ? `/blog/${item.id}` : `/notes/${item.id}`;
+          const title = item.data.title;
+          const body = isBlog
+            ? (item as CollectionEntry<"blog">).data.description
+            : "Note";
+          const footer = item.data.datePublished.toDateString();
+          return (
+            <li>
+              <Card href={href} title={title} body={body} footer={footer} />
+            </li>
+          );
+        })
       }
     </ul>
   </main>

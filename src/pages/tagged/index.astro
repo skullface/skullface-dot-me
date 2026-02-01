@@ -3,8 +3,14 @@ import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
 const title = "All tags";
 
-const allPosts = await getCollection("blog");
-const tags = [...new Set(allPosts.map((post) => post.data.tags).flat())];
+const blogPosts = await getCollection("blog");
+const notes = await getCollection("notes");
+const tags = [
+  ...new Set([
+    ...(blogPosts.flatMap((post) => post.data.tags ?? [])),
+    ...(notes.flatMap((note) => note.data.tags ?? [])),
+  ]),
+].filter(Boolean);
 
 ---
 
