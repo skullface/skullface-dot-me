@@ -3,6 +3,7 @@ import Layout from "../layouts/Layout.astro";
 import LatestCavaliers from "../components/LatestCavaliers.astro";
 import LatestLetterboxd from "../components/LatestLetterboxd.astro";
 import LatestSpotify from "../components/LatestSpotify.astro";
+import Tooltip from "../components/Tooltip.astro";
 
 const valuesAndPractices = [
   {
@@ -35,11 +36,13 @@ const title = "skullface.me 🫶";
   <main>
     <h1>skullface</h1>
 
-    <p>
-      call me <i>skully</i>! i’m a <i>creative generalist</i> and day-brightener in
-      cleveland, ohio, always trying to leave things better than i found them. ✌️(⸝⸝
-      • ◡ • ⸝⸝)
-    </p>
+    <div>
+      call me <i>skully</i>! i’m a <Tooltip
+        content="designer, developer, artist"
+        ariaLabel="creative generalist"><u>creative generalist</u></Tooltip
+      > and day-brightener in ohio, always trying to leave things better than i found
+      them. ✌️(⸝⸝ • ◡ • ⸝⸝)
+    </div>
 
     <h2>Work</h2>
     <p>
@@ -74,8 +77,8 @@ const title = "skullface.me 🫶";
           <LatestSpotify />
         </li>
         <li>🎮 persona 5 royal on playstation 5</li>
-        <li class="grayscale">
-          🏀
+        <li>
+          <span class="grayscale">🏀</span>
           <LatestCavaliers />
         </li>
       </ul>
