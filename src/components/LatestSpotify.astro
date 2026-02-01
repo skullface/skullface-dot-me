@@ -92,7 +92,7 @@ try {
   latestSong && !error ? (
     <span class="lowercase">
       <span class="song-title">{latestSong.name}</span>
-      <span style="opacity: 0.5;"> by </span>
+      <span> — </span>
       <span class="artist-name">
         {latestSong.artists.map((artist) => artist.name).join(", ")}
       </span>
