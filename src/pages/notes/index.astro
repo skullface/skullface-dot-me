@@ -42,6 +42,7 @@ const notesWithContent = await Promise.all(
               <a
                 class="group-hover:opacity-100 opacity-0"
                 href={`/notes/${note.id}`}
+                aria-label={`Permalink to “${note.data.title}”`}
               >
                 #
               </a>
