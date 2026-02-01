@@ -1,19 +1,24 @@
 ---
-import { render, type CollectionEntry, getCollection } from "astro:content";
+import { render, getCollection, getEntry } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
 import TableOfContents from "../../components/TableOfContents.astro";
 
-type Props = CollectionEntry<"blog">;
-
 export async function getStaticPaths() {
   const blogPosts = await getCollection("blog");
-  return blogPosts.map((post: { id: any }) => ({
+  return blogPosts.map((post) => ({
     params: { id: post.id },
-    props: post,
   }));
 }
 
-const post = Astro.props;
+const id = Array.isArray(Astro.params.id)
+  ? Astro.params.id.join("/")
+  : Astro.params.id;
+const post = id ? await getEntry("blog", id) : undefined;
+
+if (!post) {
+  return Astro.redirect("/404");
+}
+
 const { Content, headings } = await render(post);
 ---
 
