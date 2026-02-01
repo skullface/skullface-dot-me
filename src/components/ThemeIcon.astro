@@ -11,12 +11,20 @@
     border: 0;
     background: none;
   }
-  
-  .sun { fill: black; }
-  .moon { fill: transparent; }
 
-  html.dark .sun { fill: transparent; }
-  html.dark .moon { fill: white; }
+  .sun {
+    fill: black;
+  }
+  .moon {
+    fill: transparent;
+  }
+
+  html.dark .sun {
+    fill: transparent;
+  }
+  html.dark .moon {
+    fill: white;
+  }
 </style>
 
 <script is:inline>
@@ -24,20 +32,31 @@
     const element = document.documentElement;
     const isDark = element.classList.contains("dark");
     const isLight = element.classList.contains("light");
-    
+
     // Determine current effective theme (including system preference)
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const currentTheme = isDark ? 'dark' : (isLight ? 'light' : (systemPrefersDark ? 'dark' : 'light'));
-    
+    const systemPrefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    const currentTheme = isDark
+      ? "dark"
+      : isLight
+        ? "light"
+        : systemPrefersDark
+          ? "dark"
+          : "light";
+
     // Toggle to opposite theme
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
+    const newTheme = currentTheme === "dark" ? "light" : "dark";
+
     // Apply the new theme
-    element.classList.remove('dark', 'light');
+    element.classList.remove("dark", "light");
     element.classList.add(newTheme);
+    element.style.colorScheme = newTheme;
 
     localStorage.setItem("theme", newTheme);
-  }
+  };
 
-  document.getElementById("themeToggle").addEventListener("click", handleToggleClick);
+  document
+    .getElementById("themeToggle")
+    .addEventListener("click", handleToggleClick);
 </script>
