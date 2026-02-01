@@ -1,9 +1,31 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import LatestCavaliers from "../components/LatestCavaliers.astro";
 import LatestLetterboxd from "../components/LatestLetterboxd.astro";
 import LatestSpotify from "../components/LatestSpotify.astro";
-import Kaomoji from "../components/Kaomoji.astro";
-import Currently from "../components/Currently.astro";
+
+const valuesAndPractices = [
+  {
+    value: "clarity",
+    practice: "showing and telling",
+  },
+  {
+    value: "inclusivity",
+    practice: "proactive advocacy",
+  },
+  {
+    value: "irreverence",
+    practice: "play and experimentation",
+  },
+  {
+    value: "intention",
+    practice: "leading with purpose",
+  },
+  {
+    value: "openness",
+    practice: "removing barriers to entry",
+  },
+];
 
 const title = "skullface.me 🫶";
 ---
@@ -11,43 +33,112 @@ const title = "skullface.me 🫶";
 <script src="/scripts/ditherShader.js" defer></script>
 <Layout title={title}>
   <main>
-    <h1>
-      i make websites, brands, and art!
-    </h1>
+    <h1>skullface</h1>
 
     <p>
-      hiii i’m <b>@skullface</b>, “skully” for short! i’m a creative generalist <br class="hidden md:block" />
-      always trying to leave things better than i found them.
+      call me <i>skully</i>! i’m a <i>creative generalist</i> and day-brightener in
+      cleveland, ohio, always trying to leave things better than i found them. ✌️(⸝⸝
+      • ◡ • ⸝⸝)
     </p>
-    
-    <div class="relative flex flex-col mt-6 gap-4 w-full h-full min-h-[500px] md:min-h-[340px]">
-      <LatestLetterboxd />
-      <LatestSpotify />
-      <Currently />
-      <Kaomoji />
+
+    <h2>Work</h2>
+    <p>
+      i use design, code, and ops management to make customer acquisition
+      metrics go <i>up and to the right</i> for devtools and infra companies.
+    </p>
+
+    <ul>
+      <li class="flex justify-between">
+        <span><b>vercel</b>, senior design engineer</span>
+        <span class="">2025 – present</span>
+      </li>
+      <li class="flex justify-between">
+        <span><b>planetscale</b> + <b>clerk</b>, design manager</span>
+        <span class="">2021 – 2024 </span>
+      </li>
+      <li class="flex justify-between">
+        <span><b>github</b>, design engineer</span>
+        <span class="">2017 – 2021 </span>
+      </li>
+    </ul>
+
+    <div>
+      <h2>Most recent</h2>
+      <ul>
+        <li>
+          🎬
+          <LatestLetterboxd />
+        </li>
+        <li>
+          🎵
+          <LatestSpotify />
+        </li>
+        <li>🎮 persona 5 royal on playstation 5</li>
+        <li class="grayscale">
+          🏀
+          <LatestCavaliers />
+        </li>
+      </ul>
+
+      <div>
+        <h2>Values and practices</h2>
+        <ul class="values-and-practices">
+          {
+            valuesAndPractices.map(({ value, practice }) => (
+              <li>
+                <span class="value">
+                  <b>{value}</b>
+                  <span aria-label="via" class="through" />
+                </span>
+                {practice}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
     </div>
-    
+
+    <style>
+      .values-and-practices {
+        min-width: 368px;
+
+        li {
+          display: flex;
+          flex-direction: column;
+          @media all and (max-width: 680px) {
+            margin-bottom: calc(var(--spacer) * 2);
+          }
+          @media all and (min-width: 680px) {
+            flex-direction: row;
+            align-items: center;
+          }
+          &:nth-of-type(even) .through {
+            transform: scaleY(-1);
+          }
+        }
+
+        .value {
+          display: flex;
+          @media all and (max-width: 680px) {
+            margin-bottom: calc(var(--spacer) * 0.5);
+          }
+          @media all and (min-width: 680px) {
+            justify-content: space-between;
+            width: 45%;
+            padding-right: var(--spacer);
+          }
+        }
+
+        .through {
+          @media all and (min-width: 680px) {
+            margin-left: var(--spacer);
+            flex: 1;
+            background: url("data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjE2IiB3aWR0aD0iMjI4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Im0yMDYuMDg1IDkuODIuMDM5Ljc1em0yMS40NzMuMjlhLjc1Ljc1IDAgMCAwIC4wMTEtMS4wNjFsLTQuNzIyLTQuODI0YS43NS43NSAwIDEgMCAtMS4wNzIgMS4wNWw0LjE5OCA0LjI4Ny00LjI4OCA0LjE5N2EuNzUuNzUgMCAwIDAgMS4wNDkgMS4wNzJsNC44MjQtNC43MjJ6bS04Ni40OTgtMi4yMy4wNjYtLjc0N3ptNjUuMDY0IDIuNjg5YzMuNzQ1LS4xOTQgOC45NjYtLjI1NiAxMy4yNjEtLjI3YTY1OS45ODUgNjU5Ljk4NSAwIDAgMSA3LjQ4OS4wMjJsLjExMy4wMDFhNC40MDggNC40MDggMCAwIDEgLjAzNiAwaC4wMDJsLjAwOC0uNzUuMDA4LS43NWgtLjAzOWwtLjExNC0uMDAxYTM1OC43MjggMzU4LjcyOCAwIDAgMCAtMi4wNjUtLjAxNSA2NjEuMzMxIDY2MS4zMzEgMCAwIDAgLTUuNDQzLS4wMDZjLTQuMjk3LjAxMy05LjU1LjA3NS0xMy4zMzQuMjd6bS02NC45OTgtMy40MzZjLTMwLjU1OS0yLjcxNy01OS45My0yLjI0My04NC41NjMtMS4yOTMtMjQuNjc3Ljk1Mi00NC41MDQgMi4zNzYtNTYuMTEzIDEuNTc3bC0uMTAzIDEuNDk3YzExLjcxNi44MDYgMzEuNzA4LS42MjcgNTYuMjc0LTEuNTc1IDI0LjYxLS45NSA1My45MDctMS40MiA4NC4zNzIgMS4yOWwuMTMzLTEuNDk1em02NC45MiAxLjkzOGMtNy40OTYuMzg4LTMyLjgxNC45MTktNjQuOTItMS45MzhsLS4xMzMgMS40OTRjMzIuMTgyIDIuODYzIDU3LjU3IDIuMzM0IDY1LjEzMSAxLjk0MnoiIGZpbGw9IiM2YjY2NzMiLz48L3N2Zz4=")
+              center right no-repeat;
+            background-size: auto 1em;
+          }
+        }
+      }
+    </style>
   </main>
 </Layout>
-
-<style>
-  main {
-    max-width: var(--page-width);
-  }
-
-  h1 {
-    @media all and (max-width: 680px) {
-      font-size: 2.5em;
-    }
-    line-height: 95%;
-    span {
-      margin-top: 4px;
-      font-size: 0.94em;
-      display: block;
-      font-family: var(--font-family-serif);
-      font-weight: 400;
-      letter-spacing: -0.5px;
-      line-height: 85%;
-    }
-  }
-</style>
