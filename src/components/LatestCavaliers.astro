@@ -1,104 +1,23 @@
 ---
-// Fetch latest Cleveland Cavaliers game from NBA CDN schedule
-const CAVS_TEAM_ID = 1610612739;
-const GAME_STATUS_FINAL = 3;
-const SCHEDULE_URLS = [
-  "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json",
-  "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
-];
-
-interface NbaTeam {
-  teamId: number;
-  teamName: string;
-  teamTricode: string;
-  teamSlug: string;
-  score: number;
-}
-
-interface NbaGame {
-  gameId: string;
-  gameStatus: number;
-  gameDateTimeUTC: string;
-  homeTeam: NbaTeam;
-  awayTeam: NbaTeam;
-}
-
-interface GameDate {
-  gameDate: string;
-  games: NbaGame[];
-}
-
-interface ScheduleResponse {
-  leagueSchedule?: {
-    gameDates?: GameDate[];
-  };
-}
-
-function teamDisplayName(slug: string): string {
-  return slug === "cavaliers" ? "cavs" : slug;
-}
-
-let latestGamePrefix: string | null = null;
-let latestGameResult: string | null = null;
-let error: string | null = null;
-
-try {
-  let allCavsGames: NbaGame[] = [];
-
-  for (const url of SCHEDULE_URLS) {
-    const response = await fetch(url);
-    if (!response.ok) continue;
-
-    const data = (await response.json()) as ScheduleResponse;
-    const gameDates = data.leagueSchedule?.gameDates ?? [];
-
-    for (const day of gameDates) {
-      for (const game of day.games ?? []) {
-        const isCavsGame =
-          game.homeTeam?.teamId === CAVS_TEAM_ID ||
-          game.awayTeam?.teamId === CAVS_TEAM_ID;
-        if (isCavsGame && game.gameStatus === GAME_STATUS_FINAL) {
-          allCavsGames.push(game);
-        }
-      }
-    }
-
-    if (allCavsGames.length > 0) break;
-  }
-
-  allCavsGames.sort(
-    (a, b) =>
-      new Date(b.gameDateTimeUTC).getTime() -
-      new Date(a.gameDateTimeUTC).getTime()
-  );
-  const latestGame = allCavsGames[0];
-
-  if (latestGame) {
-    const away = latestGame.awayTeam;
-    const home = latestGame.homeTeam;
-    const awayName = teamDisplayName(away.teamSlug).toLowerCase();
-    const homeName = teamDisplayName(home.teamSlug).toLowerCase();
-    const cavsWon =
-      (home.teamId === CAVS_TEAM_ID && home.score > away.score) ||
-      (away.teamId === CAVS_TEAM_ID && away.score > home.score);
-    const result = cavsWon ? "w!" : "oof";
-    latestGamePrefix = `${awayName} @ ${homeName} (${away.score} – ${home.score}) `;
-    latestGameResult = result;
-  }
-} catch (err) {
-  const msg = err instanceof Error ? err.message : String(err);
-  error = `Error fetching Cavaliers data: ${msg}`;
-}
+// Cavaliers data is loaded client-side from /api/cavaliers so it updates
+// without a full rebuild (API runs as a Vercel serverless function).
 ---
+<span class="lowercase" id="latest-cavaliers">
+  cavs game
+</span>
 
-{
-  latestGamePrefix && latestGameResult && !error ? (
-    <span class="lowercase">
-      {latestGamePrefix} <i>{latestGameResult}</i>
-    </span>
-  ) : error ? (
-    <span class="lowercase">cavs game</span>
-  ) : (
-    <span class="lowercase">cavs game</span>
-  )
-}
+<script>
+  (function () {
+    const el = document.getElementById("latest-cavaliers");
+    if (!el) return;
+
+    fetch("/api/cavaliers")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.prefix && data.result) {
+          el.innerHTML = `${data.prefix}<i>${data.result}</i>`;
+        }
+      })
+      .catch(() => {});
+  })();
+</script>
