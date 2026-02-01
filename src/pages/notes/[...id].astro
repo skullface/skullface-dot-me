@@ -1,0 +1,59 @@
+---
+import { render, getCollection, getEntry } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+
+export async function getStaticPaths() {
+  const notes = await getCollection("notes");
+  return notes.map((note) => ({
+    params: { id: note.id },
+  }));
+}
+
+const id = Array.isArray(Astro.params.id)
+  ? Astro.params.id.join("/")
+  : Astro.params.id;
+const note = id ? await getEntry("notes", id) : undefined;
+
+if (!note) {
+  return Astro.redirect("/404");
+}
+
+const { Content, headings } = await render(note);
+const dateStr = new Date(note.data.datePublished).toISOString().slice(0, 10);
+const dateFormatted = new Date(note.data.datePublished).toLocaleDateString(
+  "en-GB",
+  { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }
+);
+---
+
+<Layout title={note.data.title}>
+  <main>
+    <h1>{note.data.title}</h1>
+
+    <article class="content">
+      <Content />
+    </article>
+
+    {
+      note.data.footnote && (
+        <aside class="content footnote">
+          <p>{note.data.footnote}</p>
+        </aside>
+      )
+    }
+    <div class="flex gap-3 items-center article-meta">
+      <time datetime={dateStr}>{dateFormatted}</time>
+      {
+        note.data.tags && note.data.tags.length > 0 && (
+          <ul class="flex gap-2 mb-0">
+            {note.data.tags.map((tag) => (
+              <li>
+                <a href={`/tagged/${tag}`}>{tag}</a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
+  </main>
+</Layout>

@@ -1,0 +1,58 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getCollection, render } from "astro:content";
+
+const title = "Notes by Skullface";
+
+const notes = (await getCollection("notes")).sort(
+  (a, b) =>
+    new Date(b.data.datePublished).getTime() -
+    new Date(a.data.datePublished).getTime()
+);
+
+const notesWithContent = await Promise.all(
+  notes.map(async (note) => {
+    const { Content } = await render(note);
+    return { note, Content };
+  })
+);
+---
+
+<Layout title={title}>
+  <main>
+    <h1 class="lowercase">{title}</h1>
+    <div class="grid gap-4">
+      {
+        notesWithContent.map(({ note, Content }) => (
+          <article>
+            <h2 class="group">
+              <time
+                datetime={new Date(note.data.datePublished)
+                  .toISOString()
+                  .slice(0, 10)}
+              >
+                {new Date(note.data.datePublished).toLocaleDateString("en-GB", {
+                  timeZone: "UTC",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </time>
+
+              <a
+                class="group-hover:opacity-100 opacity-0"
+                href={`/notes/${note.id}`}
+              >
+                #
+              </a>
+            </h2>
+
+            <div class="content">
+              <Content />
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </main>
+</Layout>

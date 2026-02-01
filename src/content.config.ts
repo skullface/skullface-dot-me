@@ -20,6 +20,16 @@ const blogCollection = defineCollection({
   }),
 });
 
+const notesCollection = defineCollection({
+  loader: glob({ pattern: '**\/[^_]*.md', base: "./src/content/notes" }),
+  schema: z.object({
+    title: z.string(),
+    datePublished: z.date(),
+    tags: z.array(z.string()).optional(),
+    footnote: z.string().optional(),
+  }),
+});
+
 const favoritesCollection = defineCollection({
   loader: glob({ pattern: '**\/[^_]*.md', base: "./src/content/favorites" }),
   schema: z.object({
@@ -32,5 +42,6 @@ const favoritesCollection = defineCollection({
 
 export const collections = {
   'blog': blogCollection,
+  'notes': notesCollection,
   'favorites': favoritesCollection
 };
