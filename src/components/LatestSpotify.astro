@@ -18,7 +18,6 @@ interface SpotifyRecentlyPlayed {
 let latestSong: SpotifyTrack | null = null;
 let error: string | null = null;
 
-// You'll need to set these environment variables
 const clientId = import.meta.env.SPOTIFY_CLIENT_ID;
 const clientSecret = import.meta.env.SPOTIFY_CLIENT_SECRET;
 const refreshToken = import.meta.env.SPOTIFY_REFRESH_TOKEN;
@@ -91,11 +90,11 @@ try {
 {
   latestSong && !error ? (
     <span class="lowercase">
-      <span class="song-title">{latestSong.name}</span>
-      <span> — </span>
       <span class="artist-name">
         {latestSong.artists.map((artist) => artist.name).join(", ")}
       </span>
+      <span> — </span>
+      <span class="song-title">{latestSong.name}</span>
     </span>
   ) : error ? (
     <>a song</>
