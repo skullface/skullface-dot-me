@@ -35,6 +35,47 @@ from typing import Any
 GRAPHQL_URL = "https://literal.club/graphql/"
 EXPORT_URL = "https://literal.club/api/export/csv"
 
+# Literal sits behind Cloudflare Browser Integrity Check. Python's default
+# User-Agent (Python-urllib/...) triggers HTTP 403 / error 1010 unless we
+# send browser-like headers.
+BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+
+
+def literal_request_headers(
+    token: str | None = None,
+    *,
+    json_body: bool = False,
+) -> dict[str, str]:
+    headers = {
+        "User-Agent": BROWSER_USER_AGENT,
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Origin": "https://literal.club",
+        "Referer": "https://literal.club/",
+    }
+    if json_body:
+        headers["Content-Type"] = "application/json"
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
+def format_http_error(exc: urllib.error.HTTPError) -> str:
+    detail = exc.read().decode("utf-8", errors="replace").strip()
+    if exc.code == 403 and "1010" in detail:
+        return (
+            f"Literal API HTTP {exc.code}: Cloudflare blocked this request (error 1010). "
+            "Literal rejects non-browser HTTP clients. Update to the latest version of "
+            "this script, or export from Literal in your browser and pass the CSV file "
+            "instead of using --fetch."
+        )
+    if detail:
+        return f"Literal API HTTP {exc.code}: {detail}"
+    return f"Literal API HTTP {exc.code}"
+
 GOODREADS_HEADERS = [
     "Book Id",
     "Title",
@@ -111,18 +152,14 @@ class LiteralClient:
         request = urllib.request.Request(
             GRAPHQL_URL,
             data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.token}",
-            },
+            headers=literal_request_headers(self.token, json_body=True),
             method="POST",
         )
         try:
             with urllib.request.urlopen(request, timeout=60) as response:
                 body = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"Literal API HTTP {exc.code}: {detail}") from exc
+            raise RuntimeError(format_http_error(exc)) from exc
 
         if body.get("errors"):
             messages = "; ".join(err.get("message", str(err)) for err in body["errors"])
@@ -143,11 +180,14 @@ class LiteralClient:
         request = urllib.request.Request(
             GRAPHQL_URL,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=literal_request_headers(json_body=True),
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=60) as response:
-            body = json.loads(response.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(format_http_error(exc)) from exc
         if body.get("errors"):
             messages = "; ".join(err.get("message", str(err)) for err in body["errors"])
             raise RuntimeError(f"Login failed: {messages}")
@@ -160,11 +200,14 @@ class LiteralClient:
     def download_literal_csv(self) -> str:
         request = urllib.request.Request(
             EXPORT_URL,
-            headers={"Authorization": f"Bearer {self.token}"},
+            headers=literal_request_headers(self.token),
             method="GET",
         )
-        with urllib.request.urlopen(request, timeout=120) as response:
-            return response.read().decode("utf-8")
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                return response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(format_http_error(exc)) from exc
 
 
 def parse_iso_date(value: str | None) -> str:
