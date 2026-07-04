@@ -13,7 +13,10 @@ Usage:
   # Or use an existing token (valid ~6 months)
   LITERAL_TOKEN='...' python3 literal-to-storygraph.py --fetch -o storygraph-import.csv
 
-  # Convert a CSV you downloaded from Literal settings
+  # Or use the curl-based wrapper (best if Python gets Cloudflare 1010):
+  ./literal-to-storygraph.sh -o storygraph-import.csv
+
+  # Convert a Literal CSV you already have on disk
   python3 literal-to-storygraph.py literal-export.csv -o storygraph-import.csv
 """
 
@@ -24,6 +27,8 @@ import csv
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -35,11 +40,10 @@ from typing import Any
 GRAPHQL_URL = "https://literal.club/graphql/"
 EXPORT_URL = "https://literal.club/api/export/csv"
 
-# Literal sits behind Cloudflare Browser Integrity Check. Python's default
-# User-Agent (Python-urllib/...) triggers HTTP 403 / error 1010 unless we
-# send browser-like headers.
+# Literal sits behind Cloudflare Browser Integrity Check. Python's default TLS
+# fingerprint (urllib) often triggers HTTP 403 / error 1010. curl does not.
 BROWSER_USER_AGENT = (
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
@@ -63,18 +67,132 @@ def literal_request_headers(
     return headers
 
 
-def format_http_error(exc: urllib.error.HTTPError) -> str:
-    detail = exc.read().decode("utf-8", errors="replace").strip()
-    if exc.code == 403 and "1010" in detail:
+def cloudflare_help(status: int, detail: str) -> str:
+    if status == 403 and "1010" in detail:
         return (
-            f"Literal API HTTP {exc.code}: Cloudflare blocked this request (error 1010). "
-            "Literal rejects non-browser HTTP clients. Update to the latest version of "
-            "this script, or export from Literal in your browser and pass the CSV file "
-            "instead of using --fetch."
+            f"Literal API HTTP {status}: Cloudflare blocked this request (error 1010). "
+            "Try the curl wrapper instead:\n"
+            "  ./scripts/literal-to-storygraph.sh -o storygraph-import.csv\n"
+            "Or re-run with: --http-backend curl\n"
+            "If login is also blocked, log into literal.club in your browser, "
+            "then set LITERAL_TOKEN from a curl login on your machine."
         )
     if detail:
-        return f"Literal API HTTP {exc.code}: {detail}"
-    return f"Literal API HTTP {exc.code}"
+        return f"Literal API HTTP {status}: {detail}"
+    return f"Literal API HTTP {status}"
+
+
+class LiteralHttp:
+    def __init__(self, backend: str = "curl") -> None:
+        self.backend = backend
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        headers: dict[str, str],
+        body: str | None = None,
+        timeout: int = 60,
+    ) -> tuple[int, str]:
+        if self.backend == "curl":
+            return self._request_curl(method, url, headers, body, timeout)
+        if self.backend == "curl_cffi":
+            return self._request_curl_cffi(method, url, headers, body, timeout)
+        return self._request_urllib(method, url, headers, body, timeout)
+
+    @staticmethod
+    def _request_curl(
+        method: str,
+        url: str,
+        headers: dict[str, str],
+        body: str | None,
+        timeout: int,
+    ) -> tuple[int, str]:
+        if not shutil.which("curl"):
+            raise RuntimeError("curl is required but was not found on PATH.")
+
+        cmd = [
+            "curl",
+            "-sS",
+            "-X",
+            method,
+            "-w",
+            "\n__CURL_HTTP_CODE__:%{http_code}",
+            "--max-time",
+            str(timeout),
+            url,
+        ]
+        for key, value in headers.items():
+            cmd.extend(["-H", f"{key}: {value}"])
+        if body is not None:
+            cmd.extend(["--data-binary", body])
+
+        try:
+            completed = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except OSError as exc:
+            raise RuntimeError(f"Failed to run curl: {exc}") from exc
+
+        if completed.returncode != 0:
+            detail = completed.stderr.strip() or completed.stdout.strip()
+            raise RuntimeError(f"curl failed: {detail}")
+
+        output = completed.stdout
+        marker = "\n__CURL_HTTP_CODE__:"
+        if marker not in output:
+            raise RuntimeError(f"Unexpected curl output: {output[:200]}")
+        response_body, _, status_part = output.rpartition(marker)
+        return int(status_part), response_body
+
+    @staticmethod
+    def _request_curl_cffi(
+        method: str,
+        url: str,
+        headers: dict[str, str],
+        body: str | None,
+        timeout: int,
+    ) -> tuple[int, str]:
+        try:
+            from curl_cffi import requests as curl_requests
+        except ImportError as exc:
+            raise RuntimeError(
+                "curl_cffi is not installed. Run: pip install curl_cffi"
+            ) from exc
+
+        response = curl_requests.request(
+            method,
+            url,
+            headers=headers,
+            data=body,
+            impersonate="chrome131",
+            timeout=timeout,
+        )
+        return response.status_code, response.text
+
+    @staticmethod
+    def _request_urllib(
+        method: str,
+        url: str,
+        headers: dict[str, str],
+        body: str | None,
+        timeout: int,
+    ) -> tuple[int, str]:
+        request = urllib.request.Request(
+            url,
+            data=body.encode("utf-8") if body is not None else None,
+            headers=headers,
+            method=method,
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return response.status, response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(cloudflare_help(exc.code, detail)) from exc
 
 GOODREADS_HEADERS = [
     "Book Id",
@@ -142,32 +260,43 @@ class BookRow:
 
 
 class LiteralClient:
-    def __init__(self, token: str) -> None:
+    def __init__(self, token: str, http: LiteralHttp | None = None) -> None:
         self.token = token
+        self.http = http or LiteralHttp("curl")
 
-    def graphql(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
-        payload = {"query": query}
-        if variables:
-            payload["variables"] = variables
-        request = urllib.request.Request(
-            GRAPHQL_URL,
-            data=json.dumps(payload).encode("utf-8"),
-            headers=literal_request_headers(self.token, json_body=True),
-            method="POST",
+    def _post_json(
+        self,
+        url: str,
+        payload: dict[str, Any],
+        *,
+        token: str | None = None,
+        timeout: int = 60,
+    ) -> dict[str, Any]:
+        status, raw = self.http.request(
+            "POST",
+            url,
+            literal_request_headers(token or self.token, json_body=True),
+            json.dumps(payload),
+            timeout=timeout,
         )
-        try:
-            with urllib.request.urlopen(request, timeout=60) as response:
-                body = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            raise RuntimeError(format_http_error(exc)) from exc
-
+        if status >= 400:
+            raise RuntimeError(cloudflare_help(status, raw))
+        body = json.loads(raw)
         if body.get("errors"):
             messages = "; ".join(err.get("message", str(err)) for err in body["errors"])
             raise RuntimeError(f"Literal API error: {messages}")
+        return body
+
+    def graphql(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+        payload: dict[str, Any] = {"query": query}
+        if variables:
+            payload["variables"] = variables
+        body = self._post_json(GRAPHQL_URL, payload)
         return body.get("data") or {}
 
     @staticmethod
-    def login(email: str, password: str) -> tuple[str, str]:
+    def login(email: str, password: str, http: LiteralHttp | None = None) -> tuple[str, str]:
+        client = http or LiteralHttp("curl")
         query = """
         mutation Login($email: String!, $password: String!) {
           login(email: $email, password: $password) {
@@ -177,17 +306,15 @@ class LiteralClient:
         }
         """
         payload = {"query": query, "variables": {"email": email, "password": password}}
-        request = urllib.request.Request(
+        status, raw = client.request(
+            "POST",
             GRAPHQL_URL,
-            data=json.dumps(payload).encode("utf-8"),
-            headers=literal_request_headers(json_body=True),
-            method="POST",
+            literal_request_headers(json_body=True),
+            json.dumps(payload),
         )
-        try:
-            with urllib.request.urlopen(request, timeout=60) as response:
-                body = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            raise RuntimeError(format_http_error(exc)) from exc
+        if status >= 400:
+            raise RuntimeError(cloudflare_help(status, raw))
+        body = json.loads(raw)
         if body.get("errors"):
             messages = "; ".join(err.get("message", str(err)) for err in body["errors"])
             raise RuntimeError(f"Login failed: {messages}")
@@ -198,16 +325,15 @@ class LiteralClient:
         return login_data["token"], profile.get("id", "")
 
     def download_literal_csv(self) -> str:
-        request = urllib.request.Request(
+        status, raw = self.http.request(
+            "GET",
             EXPORT_URL,
-            headers=literal_request_headers(self.token),
-            method="GET",
+            literal_request_headers(self.token),
+            timeout=120,
         )
-        try:
-            with urllib.request.urlopen(request, timeout=120) as response:
-                return response.read().decode("utf-8")
-        except urllib.error.HTTPError as exc:
-            raise RuntimeError(format_http_error(exc)) from exc
+        if status >= 400:
+            raise RuntimeError(cloudflare_help(status, raw))
+        return raw
 
 
 def parse_iso_date(value: str | None) -> str:
@@ -521,7 +647,7 @@ def write_goodreads_csv(path: str, rows: list[dict[str, str]]) -> None:
         writer.writerows(rows)
 
 
-def resolve_token(args: argparse.Namespace) -> tuple[str, str]:
+def resolve_token(args: argparse.Namespace, http: LiteralHttp) -> tuple[str, str]:
     token = args.token or os.environ.get("LITERAL_TOKEN", "").strip()
     profile_id = os.environ.get("LITERAL_PROFILE_ID", "").strip()
 
@@ -534,7 +660,7 @@ def resolve_token(args: argparse.Namespace) -> tuple[str, str]:
         raise RuntimeError(
             "Set LITERAL_TOKEN, or LITERAL_EMAIL and LITERAL_PASSWORD, to fetch from Literal."
         )
-    token, profile_id = LiteralClient.login(email, password)
+    token, profile_id = LiteralClient.login(email, password, http=http)
     return token, profile_id
 
 
@@ -567,12 +693,19 @@ def main() -> int:
         "--token",
         help="Literal API token (overrides LITERAL_TOKEN).",
     )
+    parser.add_argument(
+        "--http-backend",
+        choices=("curl", "curl_cffi", "urllib"),
+        default="curl",
+        help="HTTP client for Literal API calls (default: curl, most reliable).",
+    )
     args = parser.parse_args()
 
     try:
         if args.fetch:
-            token, profile_id = resolve_token(args)
-            client = LiteralClient(token)
+            http = LiteralHttp(args.http_backend)
+            token, profile_id = resolve_token(args, http)
+            client = LiteralClient(token, http=http)
             if not profile_id:
                 me = client.graphql("query { me { profile { id handle } } }")
                 profile_id = ((me.get("me") or {}).get("profile") or {}).get("id", "")
@@ -598,7 +731,7 @@ def main() -> int:
 
         rows = to_goodreads_rows(books)
         write_goodreads_csv(args.output, rows)
-    except (RuntimeError, OSError, urllib.error.URLError) as exc:
+    except (RuntimeError, OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 
